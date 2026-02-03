@@ -158,10 +158,10 @@ final class MainViewController: NSViewController {
             bottomBar.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
             bottomBar.trailingAnchor.constraint(equalTo: stack.trailingAnchor),
 
-            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 4),
-            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -4),
-            stack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
-            stack.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -12),
+            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: LayoutConstants.windowPadding),
+            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -LayoutConstants.windowPadding),
+            stack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: LayoutConstants.windowPadding),
+            stack.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -LayoutConstants.windowPadding),
 
             topBar.heightAnchor.constraint(equalToConstant: 30),
             bottomBar.heightAnchor.constraint(equalToConstant: pasteButton.style.height)
