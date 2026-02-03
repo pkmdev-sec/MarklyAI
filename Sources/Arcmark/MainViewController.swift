@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 final class MainViewController: NSViewController {
     private let model: AppModel
 
@@ -29,6 +30,10 @@ final class MainViewController: NSViewController {
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     override func loadView() {
@@ -98,6 +103,13 @@ final class MainViewController: NSViewController {
         scrollView.hasVerticalScroller = true
         scrollView.drawsBackground = false
         collectionView.frame = scrollView.bounds
+        scrollView.contentView.postsBoundsChangedNotifications = true
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleScrollBoundsChanged),
+            name: NSView.boundsDidChangeNotification,
+            object: scrollView.contentView
+        )
 
         contextMenu.delegate = self
         collectionView.menu = contextMenu
@@ -272,6 +284,12 @@ final class MainViewController: NSViewController {
             }
         }
         return rows
+    }
+
+    @objc private func handleScrollBoundsChanged() {
+        for item in collectionView.visibleItems() {
+            (item as? NodeCollectionViewItem)?.refreshHoverState()
+        }
     }
 
     private func row(at indexPath: IndexPath) -> NodeListRow? {

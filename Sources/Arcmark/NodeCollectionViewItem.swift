@@ -23,4 +23,8 @@ final class NodeCollectionViewItem: NSCollectionViewItem {
             onDelete: onDelete
         )
     }
+
+    func refreshHoverState() {
+        rowView.refreshHoverState()
+    }
 }

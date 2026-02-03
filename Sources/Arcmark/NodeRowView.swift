@@ -81,6 +81,8 @@ final class NodeRowView: NSView {
                    metrics: ListMetrics,
                    onDelete: (() -> Void)?) {
         self.metrics = metrics
+        isHovered = false
+        updateHoverState()
         titleField.stringValue = title
         titleField.font = metrics.titleFont
         titleField.textColor = metrics.titleColor
@@ -97,13 +99,7 @@ final class NodeRowView: NSView {
         showsDeleteButton = showDelete
         self.onDelete = onDelete
 
-        if let window {
-            let point = convert(window.mouseLocationOutsideOfEventStream, from: nil)
-            isHovered = bounds.contains(point)
-        } else {
-            isHovered = false
-        }
-        updateHoverState()
+        refreshHoverState()
     }
 
     func setIndentation(depth: Int, metrics: ListMetrics) {
@@ -125,6 +121,16 @@ final class NodeRowView: NSView {
         trackingArea = area
     }
 
+    override func layout() {
+        super.layout()
+        refreshHoverState()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        refreshHoverState()
+    }
+
     override func mouseEntered(with event: NSEvent) {
         super.mouseEntered(with: event)
         isHovered = true
@@ -135,6 +141,22 @@ final class NodeRowView: NSView {
         super.mouseExited(with: event)
         isHovered = false
         updateHoverState()
+    }
+
+    func refreshHoverState() {
+        guard let window else {
+            if isHovered {
+                isHovered = false
+                updateHoverState()
+            }
+            return
+        }
+        let point = convert(window.mouseLocationOutsideOfEventStream, from: nil)
+        let hovered = bounds.contains(point)
+        if hovered != isHovered {
+            isHovered = hovered
+            updateHoverState()
+        }
     }
 
     private func updateHoverState() {
