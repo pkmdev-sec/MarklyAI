@@ -82,7 +82,7 @@ final class MainViewController: NSViewController {
         collectionView.autoresizingMask = [.width, .height]
         collectionView.dataSource = self
         collectionView.delegate = self
-        collectionView.isSelectable = false
+        collectionView.isSelectable = true
         collectionView.backgroundColors = [.clear]
         collectionView.collectionViewLayout = makeCollectionLayout()
         collectionView.register(NodeCollectionViewItem.self, forItemWithIdentifier: NodeCollectionViewItem.identifier)
@@ -525,11 +525,7 @@ extension MainViewController: NSCollectionViewDataSource, NSCollectionViewDelega
                 depth: row.depth,
                 metrics: listMetrics,
                 showDelete: false,
-                onDelete: nil,
-                onClick: { [weak self] in
-                    self?.toggleFolder(folder)
-                },
-                onDoubleClick: nil
+                onDelete: nil
             )
         case .link(let link):
             let placeholder = NSImage(systemSymbolName: "globe", accessibilityDescription: nil)
@@ -552,10 +548,6 @@ extension MainViewController: NSCollectionViewDataSource, NSCollectionViewDelega
                 showDelete: true,
                 onDelete: { [weak self] in
                     self?.model.deleteNode(id: link.id)
-                },
-                onClick: nil,
-                onDoubleClick: { [weak self] in
-                    self?.openLink(link)
                 }
             )
 
@@ -570,6 +562,28 @@ extension MainViewController: NSCollectionViewDataSource, NSCollectionViewDelega
         }
 
         return nodeItem
+    }
+
+    func collectionView(_ collectionView: NSCollectionView, canDragItemsAt indexPaths: Set<IndexPath>, with event: NSEvent) -> Bool {
+        currentQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    func collectionView(_ collectionView: NSCollectionView, didSelectItemsAt indexPaths: Set<IndexPath>) {
+        guard let indexPath = indexPaths.first, let row = row(at: indexPath) else { return }
+        let clickCount = NSApp.currentEvent?.clickCount ?? 1
+
+        switch row.node {
+        case .folder(let folder):
+            if clickCount == 1 {
+                toggleFolder(folder)
+            }
+        case .link(let link):
+            if clickCount >= 2 {
+                openLink(link)
+            }
+        }
+
+        collectionView.deselectItems(at: indexPaths)
     }
 
     func collectionView(_ collectionView: NSCollectionView, pasteboardWriterForItemAt indexPath: IndexPath) -> NSPasteboardWriting? {
@@ -735,6 +749,10 @@ private struct NodeListRow {
 
 private final class ContextMenuCollectionView: NSCollectionView {
     var onContextRequest: ((IndexPath?) -> Void)?
+
+    override var mouseDownCanMoveWindow: Bool {
+        false
+    }
 
     override func menu(for event: NSEvent) -> NSMenu? {
         let location = convert(event.locationInWindow, from: nil)

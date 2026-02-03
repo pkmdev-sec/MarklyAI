@@ -13,18 +13,14 @@ final class NodeCollectionViewItem: NSCollectionViewItem {
                    depth: Int,
                    metrics: ListMetrics,
                    showDelete: Bool,
-                   onDelete: (() -> Void)?,
-                   onClick: (() -> Void)?,
-                   onDoubleClick: (() -> Void)?) {
+                   onDelete: (() -> Void)?) {
         rowView.setIndentation(depth: depth, metrics: metrics)
         rowView.configure(
             title: title,
             icon: icon,
             showDelete: showDelete,
             metrics: metrics,
-            onDelete: onDelete,
-            onClick: onClick,
-            onDoubleClick: onDoubleClick
+            onDelete: onDelete
         )
     }
 }

@@ -9,8 +9,6 @@ final class NodeRowView: NSView {
     private var showsDeleteButton = false
     private var metrics = ListMetrics()
     private var onDelete: (() -> Void)?
-    private var onClick: (() -> Void)?
-    private var onDoubleClick: (() -> Void)?
     private var iconLeadingConstraint: NSLayoutConstraint?
     private var iconWidthConstraint: NSLayoutConstraint?
     private var iconHeightConstraint: NSLayoutConstraint?
@@ -23,6 +21,10 @@ final class NodeRowView: NSView {
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setupViews()
+    }
+
+    override var mouseDownCanMoveWindow: Bool {
+        false
     }
 
     private func setupViews() {
@@ -71,21 +73,13 @@ final class NodeRowView: NSView {
             deleteButton.heightAnchor.constraint(equalToConstant: 22)
         ])
 
-        let doubleClick = NSClickGestureRecognizer(target: self, action: #selector(handleDoubleClick))
-        doubleClick.numberOfClicksRequired = 2
-        addGestureRecognizer(doubleClick)
-
-        let singleClick = NSClickGestureRecognizer(target: self, action: #selector(handleSingleClick))
-        addGestureRecognizer(singleClick)
     }
 
     func configure(title: String,
                    icon: NSImage?,
                    showDelete: Bool,
                    metrics: ListMetrics,
-                   onDelete: (() -> Void)?,
-                   onClick: (() -> Void)?,
-                   onDoubleClick: (() -> Void)?) {
+                   onDelete: (() -> Void)?) {
         self.metrics = metrics
         titleField.stringValue = title
         titleField.font = metrics.titleFont
@@ -102,8 +96,6 @@ final class NodeRowView: NSView {
 
         showsDeleteButton = showDelete
         self.onDelete = onDelete
-        self.onClick = onClick
-        self.onDoubleClick = onDoubleClick
 
         if let window {
             let point = convert(window.mouseLocationOutsideOfEventStream, from: nil)
@@ -120,15 +112,6 @@ final class NodeRowView: NSView {
 
     @objc private func handleDelete() {
         onDelete?()
-    }
-
-    @objc private func handleSingleClick() {
-        if let event = NSApp.currentEvent, event.clickCount > 1 { return }
-        onClick?()
-    }
-
-    @objc private func handleDoubleClick() {
-        onDoubleClick?()
     }
 
     override func updateTrackingAreas() {
@@ -158,4 +141,5 @@ final class NodeRowView: NSView {
         layer?.backgroundColor = isHovered ? metrics.hoverBackgroundColor.cgColor : NSColor.clear.cgColor
         deleteButton.isHidden = !(showsDeleteButton && isHovered)
     }
+
 }
