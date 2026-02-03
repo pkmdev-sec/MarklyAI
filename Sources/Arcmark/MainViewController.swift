@@ -14,6 +14,7 @@ final class MainViewController: NSViewController {
     private let scrollView = NSScrollView()
     private let contextMenu = NSMenu()
     private let listMetrics = ListMetrics()
+    private let dropIndicator = DropIndicatorView()
 
     private var filteredItems: [Node] = []
     private var visibleRows: [NodeListRow] = []
@@ -102,6 +103,11 @@ final class MainViewController: NSViewController {
         collectionView.onContextRequest = { [weak self] indexPath in
             self?.contextIndexPath = indexPath
         }
+        collectionView.onDragExit = { [weak self] in
+            self?.hideDropIndicator()
+        }
+        dropIndicator.isHidden = true
+        collectionView.addSubview(dropIndicator)
 
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.documentView = collectionView
@@ -340,6 +346,53 @@ final class MainViewController: NSViewController {
     private func row(at indexPath: IndexPath) -> NodeListRow? {
         guard indexPath.item >= 0, indexPath.item < visibleRows.count else { return nil }
         return visibleRows[indexPath.item]
+    }
+
+    private func showDropIndicator(at indexPath: IndexPath, operation: NSCollectionView.DropOperation) {
+        switch operation {
+        case .on:
+            guard let frame = frameForItem(at: indexPath) else {
+                hideDropIndicator()
+                return
+            }
+            dropIndicator.showHighlight(in: frame.insetBy(dx: 2, dy: 2))
+        case .before:
+            guard let frame = insertionLineFrame(for: indexPath) else {
+                hideDropIndicator()
+                return
+            }
+            dropIndicator.showLine(in: frame)
+        default:
+            hideDropIndicator()
+        }
+    }
+
+    private func hideDropIndicator() {
+        dropIndicator.hide()
+    }
+
+    private func frameForItem(at indexPath: IndexPath) -> NSRect? {
+        collectionView.layoutAttributesForItem(at: indexPath)?.frame
+    }
+
+    private func insertionLineFrame(for indexPath: IndexPath) -> NSRect? {
+        let lineHeight: CGFloat = 2
+        var depth = 0
+        var y: CGFloat = listMetrics.verticalGap / 2
+
+        if indexPath.item < visibleRows.count,
+           let frame = frameForItem(at: indexPath) {
+            depth = visibleRows[indexPath.item].depth
+            y = frame.minY - listMetrics.verticalGap / 2
+        } else if let lastIndex = visibleRows.indices.last,
+                  let frame = frameForItem(at: IndexPath(item: lastIndex, section: 0)) {
+            depth = 0
+            y = frame.maxY + listMetrics.verticalGap / 2
+        }
+
+        let x = listMetrics.leftPadding + CGFloat(depth) * listMetrics.indentWidth
+        let width = max(8, collectionView.bounds.width - x - listMetrics.leftPadding)
+        return NSRect(x: x, y: y - lineHeight / 2, width: width, height: lineHeight)
     }
 
     private func animateInsert(item: NSCollectionViewItem) {
@@ -735,6 +788,7 @@ extension MainViewController: NSCollectionViewDataSource, NSCollectionViewDelega
                         endedAt screenPoint: NSPoint,
                         dragOperation operation: NSDragOperation) {
         isDraggingItems = false
+        hideDropIndicator()
     }
 
     func collectionView(_ collectionView: NSCollectionView,
@@ -742,6 +796,7 @@ extension MainViewController: NSCollectionViewDataSource, NSCollectionViewDelega
                         proposedIndexPath proposedDropIndexPath: AutoreleasingUnsafeMutablePointer<NSIndexPath>,
                         dropOperation proposedDropOperation: UnsafeMutablePointer<NSCollectionView.DropOperation>) -> NSDragOperation {
         if !currentQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            hideDropIndicator()
             return []
         }
 
@@ -755,6 +810,8 @@ extension MainViewController: NSCollectionViewDataSource, NSCollectionViewDelega
             proposedDropOperation.pointee = .before
         }
 
+        showDropIndicator(at: indexPath, operation: proposedDropOperation.pointee)
+
         return .move
     }
 
@@ -762,6 +819,7 @@ extension MainViewController: NSCollectionViewDataSource, NSCollectionViewDelega
                         acceptDrop draggingInfo: NSDraggingInfo,
                         indexPath: IndexPath,
                         dropOperation: NSCollectionView.DropOperation) -> Bool {
+        hideDropIndicator()
         guard let idString = draggingInfo.draggingPasteboard.string(forType: nodePasteboardType),
               let nodeId = UUID(uuidString: idString) else { return false }
 
@@ -895,9 +953,55 @@ private struct NodeListRow {
     }
 }
 
+private final class DropIndicatorView: NSView {
+    private let lineThickness: CGFloat = 2
+    private let highlightCornerRadius: CGFloat = 8
+    private let accentColor = NSColor.controlAccentColor
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        layer?.masksToBounds = true
+        isHidden = true
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        wantsLayer = true
+        layer?.masksToBounds = true
+        isHidden = true
+    }
+
+    func showLine(in frame: NSRect) {
+        isHidden = false
+        self.frame = frame
+        layer?.cornerRadius = lineThickness / 2
+        layer?.backgroundColor = accentColor.cgColor
+        layer?.borderWidth = 0
+    }
+
+    func showHighlight(in frame: NSRect) {
+        isHidden = false
+        self.frame = frame
+        layer?.cornerRadius = highlightCornerRadius
+        layer?.backgroundColor = accentColor.withAlphaComponent(0.12).cgColor
+        layer?.borderColor = accentColor.cgColor
+        layer?.borderWidth = 2
+    }
+
+    func hide() {
+        isHidden = true
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        nil
+    }
+}
+
 
 private final class ContextMenuCollectionView: NSCollectionView {
     var onContextRequest: ((IndexPath?) -> Void)?
+    var onDragExit: (() -> Void)?
 
     override var mouseDownCanMoveWindow: Bool {
         false
@@ -908,5 +1012,10 @@ private final class ContextMenuCollectionView: NSCollectionView {
         let indexPath = indexPathForItem(at: location)
         onContextRequest?(indexPath)
         return menu
+    }
+
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        super.draggingExited(sender)
+        onDragExit?()
     }
 }
