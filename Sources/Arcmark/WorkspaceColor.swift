@@ -12,27 +12,27 @@ enum WorkspaceColorId: String, Codable, CaseIterable {
 
     var name: String {
         switch self {
-        case .ember: return "Ember"
-        case .ruby: return "Ruby"
-        case .coral: return "Coral"
-        case .tangerine: return "Tangerine"
-        case .moss: return "Moss"
-        case .ocean: return "Ocean"
-        case .indigo: return "Indigo"
-        case .graphite: return "Graphite"
+        case .ember: return "Blush"
+        case .ruby: return "Apricot"
+        case .coral: return "Butter"
+        case .tangerine: return "Leaf"
+        case .moss: return "Mint"
+        case .ocean: return "Sky"
+        case .indigo: return "Periwinkle"
+        case .graphite: return "Lavender"
         }
     }
 
     var color: NSColor {
         switch self {
-        case .ember: return NSColor(calibratedRed: 0.66, green: 0.17, blue: 0.19, alpha: 1.0)
-        case .ruby: return NSColor(calibratedRed: 0.72, green: 0.20, blue: 0.29, alpha: 1.0)
-        case .coral: return NSColor(calibratedRed: 0.78, green: 0.29, blue: 0.28, alpha: 1.0)
-        case .tangerine: return NSColor(calibratedRed: 0.87, green: 0.47, blue: 0.20, alpha: 1.0)
-        case .moss: return NSColor(calibratedRed: 0.28, green: 0.45, blue: 0.26, alpha: 1.0)
-        case .ocean: return NSColor(calibratedRed: 0.18, green: 0.43, blue: 0.61, alpha: 1.0)
-        case .indigo: return NSColor(calibratedRed: 0.29, green: 0.30, blue: 0.55, alpha: 1.0)
-        case .graphite: return NSColor(calibratedRed: 0.23, green: 0.23, blue: 0.24, alpha: 1.0)
+        case .ember: return NSColor(calibratedRed: 1.00, green: 0.635, blue: 0.635, alpha: 1.0) // #FFA2A2
+        case .ruby: return NSColor(calibratedRed: 1.00, green: 0.722, blue: 0.416, alpha: 1.0) // #FFB86A
+        case .coral: return NSColor(calibratedRed: 1.00, green: 0.941, blue: 0.522, alpha: 1.0) // #FFF085
+        case .tangerine: return NSColor(calibratedRed: 0.847, green: 0.976, blue: 0.600, alpha: 1.0) // #D8F999
+        case .moss: return NSColor(calibratedRed: 0.369, green: 0.914, blue: 0.710, alpha: 1.0) // #5EE9B5
+        case .ocean: return NSColor(calibratedRed: 0.325, green: 0.918, blue: 0.992, alpha: 1.0) // #53EAFD
+        case .indigo: return NSColor(calibratedRed: 0.639, green: 0.702, blue: 1.00, alpha: 1.0) // #A3B3FF
+        case .graphite: return NSColor(calibratedRed: 0.855, green: 0.698, blue: 1.00, alpha: 1.0) // #DAB2FF
         }
     }
 

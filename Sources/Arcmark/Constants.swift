@@ -22,5 +22,5 @@ struct ListMetrics {
     let titleColor: NSColor = NSColor.black.withAlphaComponent(0.8)
     let hoverBackgroundColor: NSColor = NSColor.black.withAlphaComponent(0.1)
     let deleteTintColor: NSColor = NSColor.black.withAlphaComponent(0.5)
-    let iconTintColor: NSColor = NSColor.white.withAlphaComponent(0.9)
+    let iconTintColor: NSColor = NSColor.black.withAlphaComponent(0.7)
 }
