@@ -20,6 +20,7 @@ final class MainViewController: NSViewController {
     private var contextNodeId: UUID?
     private var contextIndexPath: IndexPath?
     private var isReloadScheduled = false
+    private var isDraggingItems = false
 
     init(model: AppModel) {
         self.model = model
@@ -570,20 +571,20 @@ extension MainViewController: NSCollectionViewDataSource, NSCollectionViewDelega
 
     func collectionView(_ collectionView: NSCollectionView, didSelectItemsAt indexPaths: Set<IndexPath>) {
         guard let indexPath = indexPaths.first, let row = row(at: indexPath) else { return }
-        let clickCount = NSApp.currentEvent?.clickCount ?? 1
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            if self.isDraggingItems { return }
+            if !self.collectionView.selectionIndexPaths.contains(indexPath) { return }
 
-        switch row.node {
-        case .folder(let folder):
-            if clickCount == 1 {
-                toggleFolder(folder)
+            switch row.node {
+            case .folder(let folder):
+                self.toggleFolder(folder)
+            case .link(let link):
+                self.openLink(link)
             }
-        case .link(let link):
-            if clickCount >= 2 {
-                openLink(link)
-            }
+
+            self.collectionView.deselectItems(at: indexPaths)
         }
-
-        collectionView.deselectItems(at: indexPaths)
     }
 
     func collectionView(_ collectionView: NSCollectionView, pasteboardWriterForItemAt indexPath: IndexPath) -> NSPasteboardWriting? {
@@ -591,6 +592,20 @@ extension MainViewController: NSCollectionViewDataSource, NSCollectionViewDelega
         let pasteboardItem = NSPasteboardItem()
         pasteboardItem.setString(row.node.id.uuidString, forType: nodePasteboardType)
         return pasteboardItem
+    }
+
+    func collectionView(_ collectionView: NSCollectionView,
+                        draggingSession session: NSDraggingSession,
+                        willBeginAt screenPoint: NSPoint,
+                        forItemsAt indexPaths: Set<IndexPath>) {
+        isDraggingItems = true
+    }
+
+    func collectionView(_ collectionView: NSCollectionView,
+                        draggingSession session: NSDraggingSession,
+                        endedAt screenPoint: NSPoint,
+                        dragOperation operation: NSDragOperation) {
+        isDraggingItems = false
     }
 
     func collectionView(_ collectionView: NSCollectionView,
