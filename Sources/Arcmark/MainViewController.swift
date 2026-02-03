@@ -16,6 +16,7 @@ final class MainViewController: NSViewController {
     private var filteredItems: [Node] = []
     private var currentQuery: String = ""
     private var contextNodeId: UUID?
+    private var isRestoringExpansion = false
 
     init(model: AppModel) {
         self.model = model
@@ -169,7 +170,9 @@ final class MainViewController: NSViewController {
         applyWorkspaceStyling()
         applyFilter()
         outlineView.reloadData()
+        isRestoringExpansion = true
         expandPersistedFolders()
+        isRestoringExpansion = false
     }
 
     private func reloadWorkspaceMenu() {
@@ -494,15 +497,19 @@ extension MainViewController: NSOutlineViewDataSource, NSOutlineViewDelegate {
             let placeholder = NSImage(systemSymbolName: "globe", accessibilityDescription: nil)
             placeholder?.isTemplate = true
             var iconToUse = placeholder
-            if let path = link.faviconPath, let image = NSImage(contentsOfFile: path) {
+            var shouldFetch = true
+            if let path = link.faviconPath,
+               FileManager.default.fileExists(atPath: path),
+               let image = NSImage(contentsOfFile: path) {
                 image.isTemplate = false
                 iconToUse = image
+                shouldFetch = false
             }
             view.configure(title: link.title, icon: iconToUse, showDelete: true) { [weak self] in
                 self?.model.deleteNode(id: link.id)
             }
 
-            if let url = URL(string: link.url) {
+            if shouldFetch, let url = URL(string: link.url) {
                 FaviconService.shared.favicon(for: url, cachedPath: link.faviconPath) { [weak self] image, path in
                     guard let self else { return }
                     if let path {
@@ -524,6 +531,7 @@ extension MainViewController: NSOutlineViewDataSource, NSOutlineViewDelegate {
 
     func outlineViewItemDidExpand(_ notification: Notification) {
         guard let item = notification.userInfo?["NSObject"] as? Node else { return }
+        if isRestoringExpansion { return }
         if !currentQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return }
         if case .folder(let folder) = item {
             model.setFolderExpanded(id: folder.id, isExpanded: true)
@@ -532,6 +540,7 @@ extension MainViewController: NSOutlineViewDataSource, NSOutlineViewDelegate {
 
     func outlineViewItemDidCollapse(_ notification: Notification) {
         guard let item = notification.userInfo?["NSObject"] as? Node else { return }
+        if isRestoringExpansion { return }
         if !currentQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return }
         if case .folder(let folder) = item {
             model.setFolderExpanded(id: folder.id, isExpanded: false)

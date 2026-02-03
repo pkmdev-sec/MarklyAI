@@ -27,11 +27,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.minSize = NSSize(width: 280, height: 420)
         window.maxSize = NSSize(width: 520, height: 1200)
         window.setFrameAutosaveName("ArcmarkMainWindow")
+        window.collectionBehavior = [.moveToActiveSpace]
         window.contentViewController = mainViewController
+        window.center()
+        ensureWindowVisible(window)
         window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
 
         self.window = window
         applyAlwaysOnTopFromDefaults()
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func ensureWindowVisible(_ window: NSWindow) {
+        guard let screenFrame = NSScreen.main?.visibleFrame else { return }
+        if screenFrame.intersects(window.frame) { return }
+
+        let origin = NSPoint(
+            x: screenFrame.midX - window.frame.width / 2,
+            y: screenFrame.midY - window.frame.height / 2
+        )
+        window.setFrameOrigin(origin)
     }
 
     private func setupMenus() {

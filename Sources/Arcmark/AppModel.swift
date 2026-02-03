@@ -1,9 +1,11 @@
 import Foundation
+import os
 
 final class AppModel {
     private let store: DataStore
     private(set) var state: AppState
     var onChange: (() -> Void)?
+    private let logger = Logger(subsystem: "com.arcmark.app", category: "model")
 
     init(store: DataStore = DataStore()) {
         self.store = store
@@ -93,6 +95,7 @@ final class AppModel {
         let link = Link(id: UUID(), title: title, url: urlString, faviconPath: nil)
         let node = Node.link(link)
         insertNode(node, parentId: parentId)
+        logger.debug("Added link \(title, privacy: .public) -> \(urlString, privacy: .public)")
     }
 
     func renameNode(id: UUID, newName: String) {
@@ -156,6 +159,9 @@ final class AppModel {
     }
 
     func updateLinkFaviconPath(id: UUID, path: String?) {
+        if let node = nodeById(id), case .link(let link) = node, link.faviconPath == path {
+            return
+        }
         updateNode(id: id) { node in
             switch node {
             case .link(var link):

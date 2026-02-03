@@ -1,14 +1,24 @@
 import AppKit
+import os
 
 @MainActor
 final class FaviconService {
     static let shared = FaviconService()
 
     private let store = DataStore()
+    private let session: URLSession
+    private let logger = Logger(subsystem: "com.arcmark.app", category: "favicon")
+    private let failureCooldown: TimeInterval = 300
     private var cache: [String: NSImage] = [:]
     private var inFlight: Set<String> = []
+    private var failureTimestamps: [String: Date] = [:]
 
-    private init() {}
+    private init() {
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = 5
+        config.timeoutIntervalForResource = 8
+        self.session = URLSession(configuration: config)
+    }
 
     func favicon(for url: URL, cachedPath: String?, completion: @escaping (NSImage?, String?) -> Void) {
         guard let host = url.host else {
@@ -17,6 +27,17 @@ final class FaviconService {
         }
 
         let key = host.lowercased()
+        if key == "localhost" || key == "127.0.0.1" {
+            completion(nil, nil)
+            return
+        }
+
+        if let lastFailure = failureTimestamps[key], Date().timeIntervalSince(lastFailure) < failureCooldown {
+            logger.debug("Skipping favicon fetch for \(key, privacy: .public) due to cooldown")
+            completion(nil, nil)
+            return
+        }
+
         if let image = cache[key] {
             completion(image, cachedPath)
             return
@@ -45,30 +66,56 @@ final class FaviconService {
             return
         }
         inFlight.insert(key)
+        logger.debug("Fetching favicon for \(key, privacy: .public)")
 
         Task {
             let scheme = url.scheme ?? "https"
-            guard let faviconURL = URL(string: "\(scheme)://\(host)/favicon.ico") else {
-                inFlight.remove(key)
+            let primaryURL = URL(string: "\(scheme)://\(host)/favicon.ico")
+            let fallbackURL = URL(string: "https://www.google.com/s2/favicons?sz=64&domain_url=\(scheme)://\(host)")
+
+            let data = await fetchFaviconData(primary: primaryURL, fallback: fallbackURL)
+            defer { inFlight.remove(key) }
+
+            guard let data, let image = NSImage(data: data) else {
+                failureTimestamps[key] = Date()
+                logger.debug("Favicon fetch failed for \(key, privacy: .public)")
                 completion(nil, nil)
                 return
             }
 
             do {
-                let (data, _) = try await URLSession.shared.data(from: faviconURL)
-                guard let image = NSImage(data: data) else {
-                    inFlight.remove(key)
-                    completion(nil, nil)
-                    return
-                }
-                try? data.write(to: fileURL, options: [.atomic])
-                cache[key] = image
-                inFlight.remove(key)
-                completion(image, fileURL.path)
+                try data.write(to: fileURL, options: [.atomic])
             } catch {
-                inFlight.remove(key)
-                completion(nil, nil)
+                logger.debug("Failed to write favicon for \(key, privacy: .public)")
+            }
+
+            cache[key] = image
+            logger.debug("Favicon fetch succeeded for \(key, privacy: .public)")
+            completion(image, fileURL.path)
+        }
+    }
+
+    private func fetchFaviconData(primary: URL?, fallback: URL?) async -> Data? {
+        if let primary {
+            if let data = await fetchData(from: primary) {
+                return data
             }
         }
+        if let fallback {
+            return await fetchData(from: fallback)
+        }
+        return nil
+    }
+
+    private func fetchData(from url: URL) async -> Data? {
+        do {
+            let (data, response) = try await session.data(from: url)
+            if let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode), !data.isEmpty {
+                return data
+            }
+        } catch {
+            logger.debug("Favicon fetch error \(url.absoluteString, privacy: .public)")
+        }
+        return nil
     }
 }
