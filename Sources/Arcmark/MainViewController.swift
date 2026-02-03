@@ -85,8 +85,8 @@ final class MainViewController: NSViewController {
         outlineView.headerView = nil
         outlineView.delegate = self
         outlineView.dataSource = self
-        outlineView.rowHeight = 40
-        outlineView.intercellSpacing = NSSize(width: 0, height: 8)
+        outlineView.rowHeight = 46
+        outlineView.intercellSpacing = NSSize(width: 0, height: 12)
         outlineView.floatsGroupRows = false
         outlineView.usesAlternatingRowBackgroundColors = false
         outlineView.style = .sourceList
@@ -146,8 +146,8 @@ final class MainViewController: NSViewController {
 
             urlField.heightAnchor.constraint(equalToConstant: 26),
 
-            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
-            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
+            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 4),
+            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -4),
             stack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
             stack.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -12),
 
@@ -156,8 +156,8 @@ final class MainViewController: NSViewController {
         ])
 
         NSLayoutConstraint.activate([
-            searchField.leadingAnchor.constraint(equalTo: stack.leadingAnchor, constant: 4),
-            searchField.trailingAnchor.constraint(equalTo: stack.trailingAnchor, constant: -4)
+            searchField.leadingAnchor.constraint(equalTo: stack.leadingAnchor, constant: 2),
+            searchField.trailingAnchor.constraint(equalTo: stack.trailingAnchor, constant: -2)
         ])
     }
 

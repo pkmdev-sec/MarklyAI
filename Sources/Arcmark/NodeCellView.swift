@@ -22,12 +22,12 @@ final class NodeCellView: NSTableCellView {
 
     private func setupViews() {
         wantsLayer = true
-        layer?.cornerRadius = 6
+        layer?.cornerRadius = 8
         layer?.masksToBounds = true
         iconView.translatesAutoresizingMaskIntoConstraints = false
         iconView.imageScaling = .scaleProportionallyDown
         iconView.wantsLayer = true
-        iconView.layer?.cornerRadius = 6
+        iconView.layer?.cornerRadius = 8
         iconView.layer?.masksToBounds = true
 
         titleField.translatesAutoresizingMaskIntoConstraints = false
@@ -49,19 +49,19 @@ final class NodeCellView: NSTableCellView {
         addSubview(deleteButton)
 
         NSLayoutConstraint.activate([
-            iconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            iconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             iconView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            iconView.widthAnchor.constraint(equalToConstant: 22),
-            iconView.heightAnchor.constraint(equalToConstant: 22),
+            iconView.widthAnchor.constraint(equalToConstant: 26),
+            iconView.heightAnchor.constraint(equalToConstant: 26),
 
-            titleField.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 12),
+            titleField.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 14),
             titleField.centerYAnchor.constraint(equalTo: centerYAnchor),
-            titleField.trailingAnchor.constraint(lessThanOrEqualTo: deleteButton.leadingAnchor, constant: -12),
+            titleField.trailingAnchor.constraint(lessThanOrEqualTo: deleteButton.leadingAnchor, constant: -14),
 
-            deleteButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
+            deleteButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
             deleteButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            deleteButton.widthAnchor.constraint(equalToConstant: 20),
-            deleteButton.heightAnchor.constraint(equalToConstant: 20)
+            deleteButton.widthAnchor.constraint(equalToConstant: 22),
+            deleteButton.heightAnchor.constraint(equalToConstant: 22)
         ])
     }
 
