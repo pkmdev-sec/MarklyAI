@@ -51,7 +51,8 @@ final class MainViewController: NSViewController {
         workspaceActionsButton.isBordered = false
         workspaceActionsButton.image = NSImage(systemSymbolName: "ellipsis.circle", accessibilityDescription: nil)
         workspaceActionsButton.contentTintColor = NSColor.labelColor.withAlphaComponent(0.7)
-        workspaceActionsButton.showsMenuAsPrimaryAction = true
+        workspaceActionsButton.target = self
+        workspaceActionsButton.action = #selector(showWorkspaceActionsMenu)
 
         searchField.translatesAutoresizingMaskIntoConstraints = false
         searchField.placeholderString = "Search in workspace"
@@ -85,10 +86,9 @@ final class MainViewController: NSViewController {
         outlineView.rowHeight = 28
         outlineView.floatsGroupRows = false
         outlineView.usesAlternatingRowBackgroundColors = false
-        outlineView.selectionHighlightStyle = .sourceList
+        outlineView.style = .sourceList
         outlineView.backgroundColor = .clear
         outlineView.indentationPerLevel = 14
-        outlineView.animates = true
         outlineView.doubleAction = #selector(handleDoubleClick)
         outlineView.registerForDraggedTypes([nodePasteboardType])
         outlineView.setDraggingSourceOperationMask(.move, forLocal: true)
@@ -284,6 +284,12 @@ final class MainViewController: NSViewController {
 
     @objc private func createWorkspaceFromMenu() {
         promptCreateWorkspace()
+    }
+
+    @objc private func showWorkspaceActionsMenu() {
+        guard let menu = workspaceActionsButton.menu else { return }
+        let location = NSPoint(x: workspaceActionsButton.bounds.midX, y: workspaceActionsButton.bounds.minY - 6)
+        menu.popUp(positioning: nil, at: location, in: workspaceActionsButton)
     }
 
     @objc private func renameWorkspaceFromMenu() {
@@ -502,7 +508,7 @@ extension MainViewController: NSOutlineViewDataSource, NSOutlineViewDelegate {
                     if let path {
                         self.model.updateLinkFaviconPath(id: link.id, path: path)
                     }
-                    if let image {
+                    if image != nil {
                         let row = outlineView.row(forItem: node)
                         if row >= 0 {
                             let rowIndexes = IndexSet(integer: row)

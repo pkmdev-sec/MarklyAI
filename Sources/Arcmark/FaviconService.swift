@@ -1,12 +1,12 @@
 import AppKit
 
+@MainActor
 final class FaviconService {
     static let shared = FaviconService()
 
     private let store = DataStore()
     private var cache: [String: NSImage] = [:]
     private var inFlight: Set<String> = []
-    private let queue = DispatchQueue(label: "favicon.queue", qos: .utility)
 
     private init() {}
 
@@ -44,42 +44,31 @@ final class FaviconService {
             completion(nil, nil)
             return
         }
-
         inFlight.insert(key)
-        queue.async { [weak self] in
-            guard let self else { return }
+
+        Task {
             let scheme = url.scheme ?? "https"
             guard let faviconURL = URL(string: "\(scheme)://\(host)/favicon.ico") else {
-                DispatchQueue.main.async {
-                    self.inFlight.remove(key)
-                    completion(nil, nil)
-                }
+                inFlight.remove(key)
+                completion(nil, nil)
                 return
             }
 
-            let task = URLSession.shared.dataTask(with: faviconURL) { data, _, _ in
-                defer {
-                    DispatchQueue.main.async {
-                        self.inFlight.remove(key)
-                    }
-                }
-                guard let data, let image = NSImage(data: data) else {
-                    DispatchQueue.main.async { completion(nil, nil) }
+            do {
+                let (data, _) = try await URLSession.shared.data(from: faviconURL)
+                guard let image = NSImage(data: data) else {
+                    inFlight.remove(key)
+                    completion(nil, nil)
                     return
                 }
-
-                do {
-                    try data.write(to: fileURL, options: [.atomic])
-                } catch {
-                    // ignore
-                }
-
-                DispatchQueue.main.async {
-                    self.cache[key] = image
-                    completion(image, fileURL.path)
-                }
+                try? data.write(to: fileURL, options: [.atomic])
+                cache[key] = image
+                inFlight.remove(key)
+                completion(image, fileURL.path)
+            } catch {
+                inFlight.remove(key)
+                completion(nil, nil)
             }
-            task.resume()
         }
     }
 }
