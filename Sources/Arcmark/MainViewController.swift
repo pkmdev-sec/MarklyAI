@@ -373,9 +373,12 @@ final class MainViewController: NSViewController {
 
         let nameField = NSTextField(string: "")
         nameField.placeholderString = "Name"
+        nameField.translatesAutoresizingMaskIntoConstraints = false
         let emojiField = NSTextField(string: "📌")
         emojiField.placeholderString = "Emoji"
+        emojiField.translatesAutoresizingMaskIntoConstraints = false
         let colorPopup = NSPopUpButton()
+        colorPopup.translatesAutoresizingMaskIntoConstraints = false
         if colorPopup.menu == nil {
             colorPopup.menu = NSMenu()
         }
@@ -389,8 +392,23 @@ final class MainViewController: NSViewController {
         let stack = NSStackView(views: [nameField, emojiField, colorPopup])
         stack.orientation = .vertical
         stack.spacing = 8
-        stack.frame = NSRect(x: 0, y: 0, width: 240, height: 90)
-        alert.accessoryView = stack
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: 110))
+        container.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            stack.topAnchor.constraint(equalTo: container.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            nameField.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
+            nameField.trailingAnchor.constraint(equalTo: stack.trailingAnchor),
+            emojiField.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
+            emojiField.trailingAnchor.constraint(equalTo: stack.trailingAnchor),
+            colorPopup.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
+            colorPopup.trailingAnchor.constraint(equalTo: stack.trailingAnchor)
+        ])
+        alert.accessoryView = container
 
         alert.addButton(withTitle: "Create")
         alert.addButton(withTitle: "Cancel")
@@ -406,23 +424,6 @@ final class MainViewController: NSViewController {
     func promptCreateFolder(parentId: UUID?) {
         guard let name = promptForText(title: "New Folder", message: "Enter a folder name.", defaultValue: "New Folder") else { return }
         model.addFolder(name: name, parentId: parentId)
-    }
-
-    private func promptCreateLink(parentId: UUID?) {
-        let alert = NSAlert()
-        alert.messageText = "New Link"
-        alert.informativeText = "Enter a URL."
-        let urlInput = NSTextField(string: "")
-        urlInput.placeholderString = "https://example.com"
-        alert.accessoryView = urlInput
-        alert.addButton(withTitle: "Add")
-        alert.addButton(withTitle: "Cancel")
-        if alert.runModal() == .alertFirstButtonReturn {
-            let input = urlInput.stringValue
-            guard let url = normalizedUrl(from: input) else { return }
-            let linkId = model.addLink(urlString: url.absoluteString, title: titleForUrl(url), parentId: parentId)
-            fetchTitleForNewLink(id: linkId, url: url)
-        }
     }
 
     private func promptRenameNode(id: UUID, currentName: String) {
@@ -628,10 +629,6 @@ extension MainViewController: NSMenuDelegate {
             let newFolder = NSMenuItem(title: "New Folder…", action: #selector(contextNewFolder), keyEquivalent: "")
             newFolder.target = self
             menu.addItem(newFolder)
-
-            let newLink = NSMenuItem(title: "New Link…", action: #selector(contextNewLink), keyEquivalent: "")
-            newLink.target = self
-            menu.addItem(newLink)
             return
         }
 
@@ -675,10 +672,6 @@ extension MainViewController: NSMenuDelegate {
 
     @objc private func contextNewFolder() {
         promptCreateFolder(parentId: nil)
-    }
-
-    @objc private func contextNewLink() {
-        promptCreateLink(parentId: nil)
     }
 
     @objc private func contextNewNestedFolder() {
