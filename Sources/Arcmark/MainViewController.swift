@@ -147,7 +147,7 @@ final class MainViewController: NSViewController {
 
             stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
             stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
-            stack.topAnchor.constraint(equalTo: view.topAnchor, constant: 12),
+            stack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
             stack.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -12),
 
             topBar.heightAnchor.constraint(equalToConstant: 30),
@@ -231,6 +231,7 @@ final class MainViewController: NSViewController {
 
     private func applyWorkspaceStyling() {
         view.layer?.backgroundColor = model.currentWorkspace.colorId.backgroundColor.cgColor
+        view.window?.backgroundColor = model.currentWorkspace.colorId.backgroundColor
     }
 
     private func applyFilter() {
