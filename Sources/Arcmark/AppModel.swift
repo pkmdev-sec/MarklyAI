@@ -91,11 +91,13 @@ final class AppModel {
         insertNode(node, parentId: parentId)
     }
 
-    func addLink(urlString: String, title: String, parentId: UUID?) {
+    @discardableResult
+    func addLink(urlString: String, title: String, parentId: UUID?) -> UUID {
         let link = Link(id: UUID(), title: title, url: urlString, faviconPath: nil)
         let node = Node.link(link)
         insertNode(node, parentId: parentId)
         logger.debug("Added link \(title, privacy: .public) -> \(urlString, privacy: .public)")
+        return link.id
     }
 
     func renameNode(id: UUID, newName: String) {
@@ -173,6 +175,28 @@ final class AppModel {
         }
     }
 
+    func updateLinkTitleIfDefault(id: UUID, newTitle: String) -> Bool {
+        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+
+        guard let node = nodeById(id), case .link(let link) = node else { return false }
+        let defaultTitle = URL(string: link.url)?.host ?? link.url
+        guard link.title == defaultTitle else { return false }
+        guard link.title != trimmed else { return false }
+
+        updateNode(id: id) { node in
+            switch node {
+            case .link(var link):
+                link.title = trimmed
+                node = .link(link)
+            case .folder:
+                break
+            }
+        }
+        logger.debug("Updated title for \(link.url, privacy: .public) -> \(trimmed, privacy: .public)")
+        return true
+    }
+
     func nodesForWorkspace(id: UUID) -> [Node] {
         state.workspaces.first(where: { $0.id == id })?.items ?? []
     }
@@ -191,21 +215,23 @@ final class AppModel {
         }
     }
 
-    private func updateWorkspace(id: UUID, _ mutate: (inout Workspace) -> Void) {
+    private func updateWorkspace(id: UUID, notify: Bool = true, _ mutate: (inout Workspace) -> Void) {
         guard let index = state.workspaces.firstIndex(where: { $0.id == id }) else { return }
         mutate(&state.workspaces[index])
-        persist()
+        persist(notify: notify)
     }
 
-    private func updateNode(id: UUID, _ mutate: (inout Node) -> Void) {
-        updateWorkspace(id: currentWorkspace.id) { workspace in
+    private func updateNode(id: UUID, notify: Bool = true, _ mutate: (inout Node) -> Void) {
+        updateWorkspace(id: currentWorkspace.id, notify: notify) { workspace in
             _ = updateNode(id: id, nodes: &workspace.items, mutate)
         }
     }
 
-    private func persist() {
+    private func persist(notify: Bool = true) {
         store.save(state)
-        onChange?()
+        if notify {
+            onChange?()
+        }
     }
 
     private func insertNode(_ node: Node, parentId: UUID?, index: Int?, nodes: inout [Node]) {

@@ -22,24 +22,24 @@ final class FaviconService {
 
     func favicon(for url: URL, cachedPath: String?, completion: @escaping (NSImage?, String?) -> Void) {
         guard let host = url.host else {
-            completion(nil, nil)
+            completeAsync(completion, image: nil, path: nil)
             return
         }
 
         let key = host.lowercased()
         if key == "localhost" || key == "127.0.0.1" {
-            completion(nil, nil)
+            completeAsync(completion, image: nil, path: nil)
             return
         }
 
         if let lastFailure = failureTimestamps[key], Date().timeIntervalSince(lastFailure) < failureCooldown {
             logger.debug("Skipping favicon fetch for \(key, privacy: .public) due to cooldown")
-            completion(nil, nil)
+            completeAsync(completion, image: nil, path: nil)
             return
         }
 
         if let image = cache[key] {
-            completion(image, cachedPath)
+            completeAsync(completion, image: image, path: cachedPath)
             return
         }
 
@@ -50,19 +50,19 @@ final class FaviconService {
         if let cachedPath, FileManager.default.fileExists(atPath: cachedPath),
            let image = NSImage(contentsOfFile: cachedPath) {
             cache[key] = image
-            completion(image, cachedPath)
+            completeAsync(completion, image: image, path: cachedPath)
             return
         }
 
         if FileManager.default.fileExists(atPath: fileURL.path),
            let image = NSImage(contentsOf: fileURL) {
             cache[key] = image
-            completion(image, fileURL.path)
+            completeAsync(completion, image: image, path: fileURL.path)
             return
         }
 
         if inFlight.contains(key) {
-            completion(nil, nil)
+            completeAsync(completion, image: nil, path: nil)
             return
         }
         inFlight.insert(key)
@@ -79,7 +79,7 @@ final class FaviconService {
             guard let data, let image = NSImage(data: data) else {
                 failureTimestamps[key] = Date()
                 logger.debug("Favicon fetch failed for \(key, privacy: .public)")
-                completion(nil, nil)
+                completeAsync(completion, image: nil, path: nil)
                 return
             }
 
@@ -91,7 +91,13 @@ final class FaviconService {
 
             cache[key] = image
             logger.debug("Favicon fetch succeeded for \(key, privacy: .public)")
-            completion(image, fileURL.path)
+            completeAsync(completion, image: image, path: fileURL.path)
+        }
+    }
+
+    private func completeAsync(_ completion: @escaping (NSImage?, String?) -> Void, image: NSImage?, path: String?) {
+        DispatchQueue.main.async {
+            completion(image, path)
         }
     }
 

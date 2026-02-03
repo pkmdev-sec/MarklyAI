@@ -17,6 +17,7 @@ final class MainViewController: NSViewController {
     private var currentQuery: String = ""
     private var contextNodeId: UUID?
     private var isRestoringExpansion = false
+    private var isReloadScheduled = false
 
     init(model: AppModel) {
         self.model = model
@@ -161,7 +162,14 @@ final class MainViewController: NSViewController {
 
     private func bindModel() {
         model.onChange = { [weak self] in
-            self?.reloadData()
+            guard let self else { return }
+            if self.isReloadScheduled { return }
+            self.isReloadScheduled = true
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.isReloadScheduled = false
+                self.reloadData()
+            }
         }
     }
 
@@ -239,6 +247,7 @@ final class MainViewController: NSViewController {
         expandFolders(filteredItems, force: forceExpand)
     }
 
+
     private func expandFolders(_ nodes: [Node], force: Bool) {
         for node in nodes {
             switch node {
@@ -274,6 +283,14 @@ final class MainViewController: NSViewController {
             return host
         }
         return url.absoluteString
+    }
+
+    private func fetchTitleForNewLink(id: UUID, url: URL) {
+        guard ["http", "https"].contains(url.scheme?.lowercased() ?? "") else { return }
+        LinkTitleService.shared.fetchTitle(for: url, linkId: id) { [weak self] title in
+            guard let self, let title else { return }
+            _ = self.model.updateLinkTitleIfDefault(id: id, newTitle: title)
+        }
     }
 
     @objc private func workspaceChanged() {
@@ -402,7 +419,8 @@ final class MainViewController: NSViewController {
         if alert.runModal() == .alertFirstButtonReturn {
             let input = urlInput.stringValue
             guard let url = normalizedUrl(from: input) else { return }
-            model.addLink(urlString: url.absoluteString, title: titleForUrl(url), parentId: parentId)
+            let linkId = model.addLink(urlString: url.absoluteString, title: titleForUrl(url), parentId: parentId)
+            fetchTitleForNewLink(id: linkId, url: url)
         }
     }
 
@@ -428,14 +446,16 @@ final class MainViewController: NSViewController {
 
     @objc private func addLinkFromField() {
         guard let url = normalizedUrl(from: urlField.stringValue) else { return }
-        model.addLink(urlString: url.absoluteString, title: titleForUrl(url), parentId: nil)
+        let linkId = model.addLink(urlString: url.absoluteString, title: titleForUrl(url), parentId: nil)
+        fetchTitleForNewLink(id: linkId, url: url)
         urlField.stringValue = ""
     }
 
     @objc private func pasteLink() {
         if let pasted = NSPasteboard.general.string(forType: .string),
            let url = normalizedUrl(from: pasted) {
-            model.addLink(urlString: url.absoluteString, title: titleForUrl(url), parentId: nil)
+            let linkId = model.addLink(urlString: url.absoluteString, title: titleForUrl(url), parentId: nil)
+            fetchTitleForNewLink(id: linkId, url: url)
             urlField.stringValue = ""
         } else if let pasted = NSPasteboard.general.string(forType: .string) {
             urlField.stringValue = pasted
@@ -515,15 +535,9 @@ extension MainViewController: NSOutlineViewDataSource, NSOutlineViewDelegate {
                     if let path {
                         self.model.updateLinkFaviconPath(id: link.id, path: path)
                     }
-                    if image != nil {
-                        let row = outlineView.row(forItem: node)
-                        if row >= 0 {
-                            let rowIndexes = IndexSet(integer: row)
-                            outlineView.reloadData(forRowIndexes: rowIndexes, columnIndexes: IndexSet(integer: 0))
-                        }
-                    }
                 }
             }
+
         }
 
         return view
