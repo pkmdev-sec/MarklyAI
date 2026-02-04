@@ -360,16 +360,18 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     func attachmentService(_ service: WindowAttachmentService, shouldPositionWindow frame: NSRect) {
         guard let window = window else { return }
 
-        // Skip if frame hasn't changed
+        // Always show window if hidden, even if frame hasn't changed
+        if !window.isVisible {
+            window.setFrame(frame, display: true, animate: false)
+            window.orderFront(nil)
+            return
+        }
+
+        // Skip if frame hasn't changed and window is already visible
         if window.frame == frame { return }
 
         // Apply frame without animation for smooth tracking
         window.setFrame(frame, display: true, animate: false)
-
-        // Show window if hidden
-        if !window.isVisible {
-            window.orderFront(nil)
-        }
     }
 
     func attachmentServiceShouldHideWindow(_ service: WindowAttachmentService) {
