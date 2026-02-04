@@ -254,6 +254,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Wind
             name: .defaultBrowserChanged,
             object: nil
         )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAlwaysOnTopSettingChanged),
+            name: .alwaysOnTopSettingChanged,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAttachmentSettingChanged),
+            name: .attachmentSettingChanged,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleSidebarPositionChanged),
+            name: .sidebarPositionChanged,
+            object: nil
+        )
     }
 
     @objc private func handleBrowserChanged(_ notification: Notification) {
@@ -267,6 +288,68 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Wind
 
         WindowAttachmentService.shared.disable()
         WindowAttachmentService.shared.enable(browserBundleId: bundleId, position: position)
+    }
+
+    @objc private func handleAlwaysOnTopSettingChanged(_ notification: Notification) {
+        guard let enabled = notification.userInfo?["enabled"] as? Bool else { return }
+
+        alwaysOnTopMenuItem?.state = enabled ? .on : .off
+        window?.level = enabled ? .floating : .normal
+
+        // If enabling and attachment is active, disable attachment
+        if enabled && isAttachmentMode {
+            if let window = window {
+                lastManualFrame = window.frame
+            }
+            WindowAttachmentService.shared.disable()
+            isAttachmentMode = false
+            updateWindowConstraints()
+        }
+    }
+
+    @objc private func handleAttachmentSettingChanged(_ notification: Notification) {
+        guard let enabled = notification.userInfo?["enabled"] as? Bool else { return }
+
+        if enabled {
+            // Enable attachment
+            guard let browserBundleId = BrowserManager.resolveDefaultBrowserBundleId() else {
+                print("AppDelegate: No browser bundle ID available for attachment")
+                return
+            }
+
+            let positionString = notification.userInfo?["position"] as? String ?? "right"
+            let position: SidebarPosition = positionString == "left" ? .left : .right
+
+            if let window = window {
+                lastManualFrame = window.frame
+            }
+
+            isAttachmentMode = true
+            updateWindowConstraints()
+            WindowAttachmentService.shared.enable(browserBundleId: browserBundleId, position: position)
+        } else {
+            // Disable attachment
+            WindowAttachmentService.shared.disable()
+            isAttachmentMode = false
+            updateWindowConstraints()
+
+            // Show window in case it was hidden
+            window?.orderFront(nil)
+        }
+    }
+
+    @objc private func handleSidebarPositionChanged(_ notification: Notification) {
+        guard isAttachmentMode,
+              let positionString = notification.userInfo?["position"] as? String,
+              let browserBundleId = BrowserManager.resolveDefaultBrowserBundleId() else {
+            return
+        }
+
+        let position: SidebarPosition = positionString == "left" ? .left : .right
+
+        // Re-enable with new position
+        WindowAttachmentService.shared.disable()
+        WindowAttachmentService.shared.enable(browserBundleId: browserBundleId, position: position)
     }
 
     // MARK: - WindowAttachmentServiceDelegate
