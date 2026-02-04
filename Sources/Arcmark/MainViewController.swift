@@ -495,8 +495,18 @@ final class MainViewController: NSViewController {
         renameItem.target = self
         menu.addItem(renameItem)
 
-        let colorItem = NSMenuItem(title: "Change Color…", action: #selector(changeColorFromMenu), keyEquivalent: "")
-        colorItem.target = self
+        let colorItem = NSMenuItem(title: "Change Color", action: nil, keyEquivalent: "")
+        let colorSubmenu = NSMenu()
+        for colorId in WorkspaceColorId.allCases {
+            let colorMenuItem = NSMenuItem(title: colorId.name, action: #selector(changeColorTo(_:)), keyEquivalent: "")
+            colorMenuItem.target = self
+            colorMenuItem.representedObject = colorId
+            if colorId == model.currentWorkspace.colorId {
+                colorMenuItem.state = .on
+            }
+            colorSubmenu.addItem(colorMenuItem)
+        }
+        colorItem.submenu = colorSubmenu
         menu.addItem(colorItem)
 
         let deleteItem = NSMenuItem(title: "Delete Workspace…", action: #selector(deleteWorkspaceFromMenu), keyEquivalent: "")
@@ -519,33 +529,10 @@ final class MainViewController: NSViewController {
         workspaceSwitcher.beginInlineRename(workspaceId: workspace.id)
     }
 
-    @objc private func changeColorFromMenu() {
+    @objc private func changeColorTo(_ sender: NSMenuItem) {
+        guard let colorId = sender.representedObject as? WorkspaceColorId else { return }
         let workspace = model.currentWorkspace
-        let alert = NSAlert()
-        alert.messageText = "Change Workspace Color"
-        alert.informativeText = "Pick a new color."
-
-        let popup = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 200, height: 26))
-        if popup.menu == nil {
-            popup.menu = NSMenu()
-        }
-        for color in WorkspaceColorId.allCases {
-            let item = NSMenuItem(title: color.name, action: nil, keyEquivalent: "")
-            item.representedObject = color
-            popup.menu?.addItem(item)
-        }
-        if let index = WorkspaceColorId.allCases.firstIndex(of: workspace.colorId) {
-            popup.selectItem(at: index)
-        }
-
-        alert.accessoryView = popup
-        alert.addButton(withTitle: "Update")
-        alert.addButton(withTitle: "Cancel")
-        let response = alert.runModal()
-        if response == .alertFirstButtonReturn,
-           let selected = popup.selectedItem?.representedObject as? WorkspaceColorId {
-            model.updateWorkspaceColor(id: workspace.id, colorId: selected)
-        }
+        model.updateWorkspaceColor(id: workspace.id, colorId: colorId)
     }
 
     @objc private func deleteWorkspaceFromMenu() {
