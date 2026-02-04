@@ -31,6 +31,7 @@ final class MainViewController: NSViewController {
     private weak var inlineRenameItem: NodeCollectionViewItem?
     private var inlineRenameNodeId: UUID?
     private var pendingInlineRenameId: UUID?
+    private var pendingWorkspaceRenameId: UUID?
     private var suppressNextSelection = false
 
     init(model: AppModel) {
@@ -210,6 +211,7 @@ final class MainViewController: NSViewController {
         }
         workspaceSwitcher.selectedWorkspaceId = selectedId
         workspaceSwitcher.workspaceColor = model.currentWorkspace.colorId
+        handlePendingWorkspaceRename()
     }
 
     private func applyWorkspaceStyling() {
@@ -559,52 +561,8 @@ final class MainViewController: NSViewController {
     }
 
     func promptCreateWorkspace() {
-        let alert = NSAlert()
-        alert.messageText = "New Workspace"
-        alert.informativeText = "Create a new workspace."
-
-        let nameField = NSTextField(string: "")
-        nameField.placeholderString = "Name"
-        nameField.translatesAutoresizingMaskIntoConstraints = false
-        let colorPopup = NSPopUpButton()
-        colorPopup.translatesAutoresizingMaskIntoConstraints = false
-        if colorPopup.menu == nil {
-            colorPopup.menu = NSMenu()
-        }
-        for color in WorkspaceColorId.allCases {
-            let item = NSMenuItem(title: color.name, action: nil, keyEquivalent: "")
-            item.representedObject = color
-            colorPopup.menu?.addItem(item)
-        }
-        colorPopup.selectItem(at: 0)
-
-        let stack = NSStackView(views: [nameField, colorPopup])
-        stack.orientation = .vertical
-        stack.spacing = 8
-        stack.translatesAutoresizingMaskIntoConstraints = false
-
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: 74))
-        container.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            stack.topAnchor.constraint(equalTo: container.topAnchor),
-            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            nameField.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
-            nameField.trailingAnchor.constraint(equalTo: stack.trailingAnchor),
-            colorPopup.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
-            colorPopup.trailingAnchor.constraint(equalTo: stack.trailingAnchor)
-        ])
-        alert.accessoryView = container
-
-        alert.addButton(withTitle: "Create")
-        alert.addButton(withTitle: "Cancel")
-        if alert.runModal() == .alertFirstButtonReturn {
-            let name = nameField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !name.isEmpty else { return }
-            let selectedColor = (colorPopup.selectedItem?.representedObject as? WorkspaceColorId) ?? .defaultColor()
-            model.createWorkspace(name: name, colorId: selectedColor)
-        }
+        let workspaceId = model.createWorkspace(name: "Untitled Workspace", colorId: .randomColor())
+        scheduleWorkspaceInlineRename(for: workspaceId)
     }
 
     func createFolderAndBeginRename(parentId: UUID?) {
@@ -687,6 +645,20 @@ final class MainViewController: NSViewController {
             } else {
                 self.pendingInlineRenameId = nodeId
             }
+        }
+    }
+
+    private func scheduleWorkspaceInlineRename(for workspaceId: UUID) {
+        pendingWorkspaceRenameId = workspaceId
+    }
+
+    private func handlePendingWorkspaceRename() {
+        guard let workspaceId = pendingWorkspaceRenameId else { return }
+        pendingWorkspaceRenameId = nil
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.workspaceSwitcher.beginInlineRename(workspaceId: workspaceId)
         }
     }
 

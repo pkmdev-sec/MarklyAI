@@ -47,4 +47,8 @@ enum WorkspaceColorId: String, Codable, CaseIterable {
 
 extension WorkspaceColorId {
     static func defaultColor() -> WorkspaceColorId { .ember }
+
+    static func randomColor() -> WorkspaceColorId {
+        WorkspaceColorId.allCases.randomElement() ?? .defaultColor()
+    }
 }

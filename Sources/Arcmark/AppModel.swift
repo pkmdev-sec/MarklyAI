@@ -47,12 +47,14 @@ final class AppModel {
         persist()
     }
 
-    func createWorkspace(name: String, colorId: WorkspaceColorId) {
+    @discardableResult
+    func createWorkspace(name: String, colorId: WorkspaceColorId) -> UUID {
         let workspace = Workspace(id: UUID(), name: name, colorId: colorId, items: [])
         state.workspaces.append(workspace)
         state.selectedWorkspaceId = workspace.id
         UserDefaults.standard.set(workspace.id.uuidString, forKey: UserDefaultsKeys.lastSelectedWorkspaceId)
         persist()
+        return workspace.id
     }
 
     func renameWorkspace(id: UUID, newName: String) {
