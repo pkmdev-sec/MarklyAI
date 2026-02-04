@@ -9,7 +9,6 @@ struct AppState: Codable, Equatable {
 struct Workspace: Codable, Identifiable, Equatable {
     var id: UUID
     var name: String
-    var emoji: String
     var colorId: WorkspaceColorId
     var items: [Node]
 }

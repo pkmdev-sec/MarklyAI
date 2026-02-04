@@ -65,7 +65,6 @@ final class DataStore {
         let workspace = Workspace(
             id: UUID(),
             name: "Inbox",
-            emoji: "📌",
             colorId: .defaultColor(),
             items: []
         )

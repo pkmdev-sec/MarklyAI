@@ -56,7 +56,6 @@ final class WorkspaceSwitcherView: NSView {
     struct WorkspaceItem {
         let id: UUID
         let name: String
-        let emoji: String
         let colorId: WorkspaceColorId
     }
 
@@ -195,7 +194,6 @@ final class WorkspaceSwitcherView: NSView {
             let button = WorkspaceButton(
                 workspaceId: workspace.id,
                 name: workspace.name,
-                emoji: workspace.emoji,
                 colorId: workspace.colorId,
                 style: style
             )
@@ -409,7 +407,7 @@ private final class WorkspaceButton: NSControl {
     var onTap: ((UUID) -> Void)?
     var onRightClick: ((UUID, NSPoint) -> Void)?
 
-    init(workspaceId: UUID, name: String, emoji: String, colorId: WorkspaceColorId, style: WorkspaceSwitcherView.Style) {
+    init(workspaceId: UUID, name: String, colorId: WorkspaceColorId, style: WorkspaceSwitcherView.Style) {
         self.workspaceId = workspaceId
         self.style = style
         super.init(frame: .zero)

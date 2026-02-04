@@ -205,7 +205,6 @@ final class MainViewController: NSViewController {
             WorkspaceSwitcherView.WorkspaceItem(
                 id: workspace.id,
                 name: workspace.name,
-                emoji: workspace.emoji,
                 colorId: workspace.colorId
             )
         }
@@ -494,10 +493,6 @@ final class MainViewController: NSViewController {
         renameItem.target = self
         menu.addItem(renameItem)
 
-        let emojiItem = NSMenuItem(title: "Change Emoji…", action: #selector(changeEmojiFromMenu), keyEquivalent: "")
-        emojiItem.target = self
-        menu.addItem(emojiItem)
-
         let colorItem = NSMenuItem(title: "Change Color…", action: #selector(changeColorFromMenu), keyEquivalent: "")
         colorItem.target = self
         menu.addItem(colorItem)
@@ -520,12 +515,6 @@ final class MainViewController: NSViewController {
     @objc private func renameWorkspaceFromMenu() {
         let workspace = model.currentWorkspace
         workspaceSwitcher.beginInlineRename(workspaceId: workspace.id)
-    }
-
-    @objc private func changeEmojiFromMenu() {
-        let workspace = model.currentWorkspace
-        guard let newEmoji = promptForText(title: "Change Emoji", message: "Enter a new emoji.", defaultValue: workspace.emoji) else { return }
-        model.updateWorkspaceEmoji(id: workspace.id, emoji: newEmoji)
     }
 
     @objc private func changeColorFromMenu() {
@@ -577,9 +566,6 @@ final class MainViewController: NSViewController {
         let nameField = NSTextField(string: "")
         nameField.placeholderString = "Name"
         nameField.translatesAutoresizingMaskIntoConstraints = false
-        let emojiField = NSTextField(string: "📌")
-        emojiField.placeholderString = "Emoji"
-        emojiField.translatesAutoresizingMaskIntoConstraints = false
         let colorPopup = NSPopUpButton()
         colorPopup.translatesAutoresizingMaskIntoConstraints = false
         if colorPopup.menu == nil {
@@ -592,12 +578,12 @@ final class MainViewController: NSViewController {
         }
         colorPopup.selectItem(at: 0)
 
-        let stack = NSStackView(views: [nameField, emojiField, colorPopup])
+        let stack = NSStackView(views: [nameField, colorPopup])
         stack.orientation = .vertical
         stack.spacing = 8
         stack.translatesAutoresizingMaskIntoConstraints = false
 
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: 110))
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: 74))
         container.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
@@ -606,8 +592,6 @@ final class MainViewController: NSViewController {
             stack.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             nameField.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
             nameField.trailingAnchor.constraint(equalTo: stack.trailingAnchor),
-            emojiField.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
-            emojiField.trailingAnchor.constraint(equalTo: stack.trailingAnchor),
             colorPopup.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
             colorPopup.trailingAnchor.constraint(equalTo: stack.trailingAnchor)
         ])
@@ -617,10 +601,9 @@ final class MainViewController: NSViewController {
         alert.addButton(withTitle: "Cancel")
         if alert.runModal() == .alertFirstButtonReturn {
             let name = nameField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-            let emoji = emojiField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty else { return }
             let selectedColor = (colorPopup.selectedItem?.representedObject as? WorkspaceColorId) ?? .defaultColor()
-            model.createWorkspace(name: name, emoji: emoji.isEmpty ? "📌" : emoji, colorId: selectedColor)
+            model.createWorkspace(name: name, colorId: selectedColor)
         }
     }
 
@@ -977,7 +960,7 @@ extension MainViewController: NSMenuDelegate {
             let moveMenu = NSMenuItem(title: "Move to", action: nil, keyEquivalent: "")
             let submenu = NSMenu()
             for workspace in model.workspaces where workspace.id != model.currentWorkspace.id {
-                let item = NSMenuItem(title: "\(workspace.emoji) \(workspace.name)", action: #selector(contextMoveToWorkspace), keyEquivalent: "")
+                let item = NSMenuItem(title: workspace.name, action: #selector(contextMoveToWorkspace), keyEquivalent: "")
                 item.target = self
                 item.representedObject = workspace.id
                 submenu.addItem(item)

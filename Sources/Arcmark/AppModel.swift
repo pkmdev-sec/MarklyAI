@@ -33,7 +33,7 @@ final class AppModel {
         if let first = state.workspaces.first {
             return first
         }
-        let fallback = Workspace(id: UUID(), name: "Inbox", emoji: "📌", colorId: .defaultColor(), items: [])
+        let fallback = Workspace(id: UUID(), name: "Inbox", colorId: .defaultColor(), items: [])
         state.workspaces = [fallback]
         state.selectedWorkspaceId = fallback.id
         persist()
@@ -47,8 +47,8 @@ final class AppModel {
         persist()
     }
 
-    func createWorkspace(name: String, emoji: String, colorId: WorkspaceColorId) {
-        let workspace = Workspace(id: UUID(), name: name, emoji: emoji, colorId: colorId, items: [])
+    func createWorkspace(name: String, colorId: WorkspaceColorId) {
+        let workspace = Workspace(id: UUID(), name: name, colorId: colorId, items: [])
         state.workspaces.append(workspace)
         state.selectedWorkspaceId = workspace.id
         UserDefaults.standard.set(workspace.id.uuidString, forKey: UserDefaultsKeys.lastSelectedWorkspaceId)
@@ -58,12 +58,6 @@ final class AppModel {
     func renameWorkspace(id: UUID, newName: String) {
         updateWorkspace(id: id) { workspace in
             workspace.name = newName
-        }
-    }
-
-    func updateWorkspaceEmoji(id: UUID, emoji: String) {
-        updateWorkspace(id: id) { workspace in
-            workspace.emoji = emoji
         }
     }
 

@@ -10,7 +10,7 @@ final class ModelTests: XCTestCase {
     func testJSONRoundTrip() throws {
         let link = Link(id: UUID(), title: "Example", url: "https://example.com", faviconPath: nil)
         let folder = Folder(id: UUID(), name: "Folder", children: [.link(link)], isExpanded: true)
-        let workspace = Workspace(id: UUID(), name: "Inbox", emoji: "📌", colorId: .ember, items: [.folder(folder)])
+        let workspace = Workspace(id: UUID(), name: "Inbox", colorId: .ember, items: [.folder(folder)])
         let state = AppState(schemaVersion: 1, workspaces: [workspace], selectedWorkspaceId: workspace.id)
 
         let data = try JSONEncoder().encode(state)
