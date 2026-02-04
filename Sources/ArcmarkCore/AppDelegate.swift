@@ -357,7 +357,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
 
     // MARK: - WindowAttachmentServiceDelegate
 
-    func attachmentService(_ service: WindowAttachmentService, shouldPositionWindow frame: NSRect) {
+    func attachmentService(_ service: WindowAttachmentService, shouldPositionWindow frame: NSRect, animated: Bool) {
         guard let window = window else { return }
 
         // Always show window if hidden, even if frame hasn't changed
@@ -370,8 +370,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         // Skip if frame hasn't changed and window is already visible
         if window.frame == frame { return }
 
-        // Apply frame without animation for smooth tracking
-        window.setFrame(frame, display: true, animate: false)
+        // Apply frame with smooth animation
+        if animated {
+            NSAnimationContext.runAnimationGroup({ context in
+                context.duration = 0.12
+                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                window.animator().setFrame(frame, display: true)
+            })
+        } else {
+            window.setFrame(frame, display: true, animate: false)
+        }
     }
 
     func attachmentServiceShouldHideWindow(_ service: WindowAttachmentService) {

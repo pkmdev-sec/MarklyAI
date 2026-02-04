@@ -10,7 +10,7 @@ import AppKit
 
 @MainActor
 protocol WindowAttachmentServiceDelegate: AnyObject {
-    func attachmentService(_ service: WindowAttachmentService, shouldPositionWindow frame: NSRect)
+    func attachmentService(_ service: WindowAttachmentService, shouldPositionWindow frame: NSRect, animated: Bool)
     func attachmentServiceShouldHideWindow(_ service: WindowAttachmentService)
     func attachmentServiceShouldShowWindow(_ service: WindowAttachmentService)
 }
@@ -34,13 +34,21 @@ final class WindowAttachmentService {
     private var workspaceObservers: [NSObjectProtocol] = []
     private var screenChangeObserver: NSObjectProtocol?
 
-    // Debouncing
+    // Debouncing - reduced from 0.05 to 0.016 (~60fps) for smoother tracking
     private var positionUpdateTimer: Timer?
-    private let positionDebounceInterval: TimeInterval = 0.05
+    private let positionDebounceInterval: TimeInterval = 0.016
 
     // Frame caching to skip redundant updates
     private var lastBrowserFrame: NSRect?
     private var lastArcmarkFrame: NSRect?
+
+    // Screen caching to reduce detection overhead
+    private var cachedScreen: NSScreen?
+    private var cachedScreenFrame: NSRect?
+
+    // Smooth animation using NSAnimationContext
+    private var isAnimating: Bool = false
+    private let animationDuration: TimeInterval = 0.12 // 120ms smooth animation
 
     private init() {}
 
@@ -185,6 +193,14 @@ final class WindowAttachmentService {
     }
 
     private func detectScreen(for frame: NSRect) -> NSScreen? {
+        // Use cached screen if the frame is still within the same screen bounds
+        if let cached = cachedScreen,
+           let cachedBounds = cachedScreenFrame,
+           cachedBounds.contains(CGPoint(x: frame.midX, y: frame.midY)) {
+            return cached
+        }
+
+        // Recalculate if cache miss
         let screens = NSScreen.screens
         var bestScreen: NSScreen?
         var bestOverlap: CGFloat = 0
@@ -198,7 +214,11 @@ final class WindowAttachmentService {
             }
         }
 
-        return bestScreen ?? NSScreen.main
+        let result = bestScreen ?? NSScreen.main
+        cachedScreen = result
+        cachedScreenFrame = result?.frame
+
+        return result
     }
 
     // MARK: - Main Update Loop
@@ -247,7 +267,8 @@ final class WindowAttachmentService {
 
         // Only update if frame changed or if we're forcing show (e.g., app switch)
         if frameChanged || calculatedFrameChanged || forceShow {
-            delegate?.attachmentService(self, shouldPositionWindow: newFrame)
+            // Notify delegate to position window with smooth animation
+            delegate?.attachmentService(self, shouldPositionWindow: newFrame, animated: true)
         }
     }
 
@@ -357,6 +378,9 @@ final class WindowAttachmentService {
         positionUpdateTimer = nil
         lastBrowserFrame = nil
         lastArcmarkFrame = nil
+        cachedScreen = nil
+        cachedScreenFrame = nil
+        isAnimating = false
     }
 
     // MARK: - Workspace Observers
