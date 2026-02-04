@@ -28,6 +28,7 @@ final class WindowAttachmentService {
     private var isEnabled: Bool = false
     private var currentBrowserBundleId: String?
     private var sidebarPosition: SidebarPosition = .right
+    private var lastFrontmostBundleId: String?
 
     // Notification observers
     private var workspaceObservers: [NSObjectProtocol] = []
@@ -76,6 +77,7 @@ final class WindowAttachmentService {
         currentBrowserBundleId = nil
         lastBrowserFrame = nil
         lastArcmarkFrame = nil
+        lastFrontmostBundleId = nil
     }
 
     func checkAccessibilityPermissions() -> Bool {
@@ -210,7 +212,7 @@ final class WindowAttachmentService {
         }
     }
 
-    private func updateArcmarkPosition() {
+    private func updateArcmarkPosition(forceShow: Bool = false) {
         guard isEnabled else { return }
 
         // Find the frontmost browser window
@@ -225,11 +227,8 @@ final class WindowAttachmentService {
             return
         }
 
-        // Skip update if browser frame hasn't changed
-        if let lastFrame = lastBrowserFrame, lastFrame == browserFrame {
-            return
-        }
-
+        // Check if frame has changed
+        let frameChanged = lastBrowserFrame != browserFrame
         lastBrowserFrame = browserFrame
 
         // Get current Arcmark window width (user may have resized it)
@@ -242,15 +241,14 @@ final class WindowAttachmentService {
             return
         }
 
-        // Skip update if calculated frame hasn't changed
-        if let lastFrame = lastArcmarkFrame, lastFrame == newFrame {
-            return
-        }
-
+        // Check if calculated frame has changed
+        let calculatedFrameChanged = lastArcmarkFrame != newFrame
         lastArcmarkFrame = newFrame
 
-        // Position the window
-        delegate?.attachmentService(self, shouldPositionWindow: newFrame)
+        // Only update if frame changed or if we're forcing show (e.g., app switch)
+        if frameChanged || calculatedFrameChanged || forceShow {
+            delegate?.attachmentService(self, shouldPositionWindow: newFrame)
+        }
     }
 
     // MARK: - Browser Attachment
@@ -292,8 +290,9 @@ final class WindowAttachmentService {
         if let existingElement = browserWindowElement,
            CFEqual(existingElement, windowElement) {
             // Same window, just update position without re-registering observers
-            print("WindowAttachmentService: Already observing this window, updating position")
-            updateArcmarkPosition()
+            // Force show in case window was hidden and we're switching to browser
+            print("WindowAttachmentService: Already observing this window, updating position and showing")
+            updateArcmarkPosition(forceShow: true)
             return
         }
 
@@ -307,8 +306,8 @@ final class WindowAttachmentService {
         // Setup observers for this window
         observeBrowserWindow()
 
-        // Perform initial position update
-        updateArcmarkPosition()
+        // Perform initial position update and show window
+        updateArcmarkPosition(forceShow: true)
     }
 
     // MARK: - AX Observers
@@ -377,14 +376,28 @@ final class WindowAttachmentService {
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
 
-                if app.bundleIdentifier == self.currentBrowserBundleId {
+                let bundleId = app.bundleIdentifier
+
+                if bundleId == self.currentBrowserBundleId {
                     // Browser became active - attach and show
+                    print("WindowAttachmentService: Browser activated, attaching")
+                    self.lastFrontmostBundleId = bundleId
                     self.attachToBrowser()
-                } else if app.bundleIdentifier == Bundle.main.bundleIdentifier {
-                    // Arcmark itself activated - do nothing (don't hide!)
-                    return
+                } else if bundleId == Bundle.main.bundleIdentifier {
+                    // Arcmark itself activated
+                    // If the previous app was the browser, keep Arcmark visible
+                    // This handles clicking between browser and Arcmark
+                    if self.lastFrontmostBundleId == self.currentBrowserBundleId {
+                        print("WindowAttachmentService: Arcmark activated, but browser was previous - keeping visible")
+                        return
+                    }
+                    // If previous app was not the browser, hide Arcmark
+                    print("WindowAttachmentService: Arcmark activated from non-browser app - hiding")
+                    self.delegate?.attachmentServiceShouldHideWindow(self)
                 } else {
                     // Different app became active - hide Arcmark
+                    print("WindowAttachmentService: Different app activated - hiding")
+                    self.lastFrontmostBundleId = bundleId
                     self.delegate?.attachmentServiceShouldHideWindow(self)
                 }
             }
