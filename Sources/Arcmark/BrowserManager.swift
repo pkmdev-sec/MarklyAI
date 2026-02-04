@@ -45,4 +45,12 @@ enum BrowserManager {
         }
         NSWorkspace.shared.open(url)
     }
+
+    static func isRunning(bundleId: String) -> Bool {
+        return NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleId }
+    }
+
+    static func frontmostApp() -> NSRunningApplication? {
+        return NSWorkspace.shared.frontmostApplication
+    }
 }

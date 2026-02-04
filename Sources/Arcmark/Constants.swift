@@ -1,10 +1,17 @@
 import AppKit
+import Foundation
+
+extension Notification.Name {
+    static let defaultBrowserChanged = Notification.Name("defaultBrowserChanged")
+}
 
 enum UserDefaultsKeys {
     static let defaultBrowserBundleId = "defaultBrowserBundleId"
     static let alwaysOnTopEnabled = "alwaysOnTopEnabled"
     static let lastSelectedWorkspaceId = "lastSelectedWorkspaceId"
     static let mainWindowSize = "mainWindowSize"
+    static let sidebarAttachmentEnabled = "sidebarAttachmentEnabled"
+    static let sidebarPosition = "sidebarPosition"
 }
 
 let nodePasteboardType = NSPasteboard.PasteboardType("com.arcmark.node")
