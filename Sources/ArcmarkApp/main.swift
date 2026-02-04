@@ -1,4 +1,5 @@
 import AppKit
+import ArcmarkCore
 
 @MainActor
 @main

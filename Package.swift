@@ -9,10 +9,19 @@ let package = Package(
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "Arcmark", targets: ["Arcmark"])
+        // Library for bundler to use
+        .library(name: "ArcmarkCore", targets: ["ArcmarkCore"]),
+        // Executable for development/testing
+        .executable(name: "Arcmark", targets: ["ArcmarkApp"])
     ],
     targets: [
-        .executableTarget(name: "Arcmark"),
-        .testTarget(name: "ArcmarkTests", dependencies: ["Arcmark"])
+        // Core library with all app logic
+        .target(name: "ArcmarkCore"),
+        // Minimal executable entry point
+        .executableTarget(
+            name: "ArcmarkApp",
+            dependencies: ["ArcmarkCore"]
+        ),
+        .testTarget(name: "ArcmarkTests", dependencies: ["ArcmarkCore"])
     ]
 )

@@ -86,20 +86,41 @@ final class WindowAttachmentService {
     // MARK: - Browser Window Discovery
 
     private func findFrontmostBrowserWindow() -> AXUIElement? {
-        guard let bundleId = currentBrowserBundleId else { return nil }
-
-        guard let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleId }),
-              app.isActive else {
+        guard let bundleId = currentBrowserBundleId else {
+            print("WindowAttachmentService: findFrontmostBrowserWindow - no bundle ID")
             return nil
         }
+
+        guard let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleId }) else {
+            print("WindowAttachmentService: findFrontmostBrowserWindow - app not found in running applications")
+            return nil
+        }
+
+        guard app.isActive else {
+            print("WindowAttachmentService: findFrontmostBrowserWindow - app is running but not active")
+            return nil
+        }
+
+        print("WindowAttachmentService: findFrontmostBrowserWindow - app is active, pid=\(app.processIdentifier)")
 
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
         var windowList: CFTypeRef?
 
         let result = AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowList)
-        guard result == .success,
-              let windows = windowList as? [AXUIElement],
-              let firstWindow = windows.first else {
+        guard result == .success else {
+            print("WindowAttachmentService: findFrontmostBrowserWindow - failed to get windows attribute, error: \(result.rawValue)")
+            return nil
+        }
+
+        guard let windows = windowList as? [AXUIElement] else {
+            print("WindowAttachmentService: findFrontmostBrowserWindow - windows attribute is not an array")
+            return nil
+        }
+
+        print("WindowAttachmentService: findFrontmostBrowserWindow - found \(windows.count) window(s)")
+
+        guard let firstWindow = windows.first else {
+            print("WindowAttachmentService: findFrontmostBrowserWindow - no windows available")
             return nil
         }
 
@@ -107,9 +128,11 @@ final class WindowAttachmentService {
         var minimized: CFTypeRef?
         AXUIElementCopyAttributeValue(firstWindow, kAXMinimizedAttribute as CFString, &minimized)
         if let isMinimized = minimized as? Bool, isMinimized {
+            print("WindowAttachmentService: findFrontmostBrowserWindow - first window is minimized")
             return nil
         }
 
+        print("WindowAttachmentService: findFrontmostBrowserWindow - returning first window")
         return firstWindow
     }
 
@@ -217,67 +240,104 @@ final class WindowAttachmentService {
     }
 
     private func updateArcmarkPosition() {
-        guard isEnabled else { return }
+        guard isEnabled else {
+            print("WindowAttachmentService: updateArcmarkPosition - service is disabled")
+            return
+        }
+
+        print("WindowAttachmentService: updateArcmarkPosition - starting position update")
 
         // Find the frontmost browser window
         guard let windowElement = findFrontmostBrowserWindow() else {
-            print("WindowAttachmentService: No valid browser window found")
+            print("WindowAttachmentService: updateArcmarkPosition - no valid browser window found")
             delegate?.attachmentServiceShouldHideWindow(self)
             return
         }
 
+        print("WindowAttachmentService: updateArcmarkPosition - found browser window, getting frame...")
+
         // Get the browser window frame
         guard let browserFrame = getWindowFrame(windowElement) else {
-            print("WindowAttachmentService: Could not get browser window frame")
+            print("WindowAttachmentService: updateArcmarkPosition - could not get browser window frame")
             delegate?.attachmentServiceShouldHideWindow(self)
             return
         }
+
+        print("WindowAttachmentService: updateArcmarkPosition - browser frame: \(browserFrame)")
 
         // Get current Arcmark window width (user may have resized it)
         let arcmarkWidth: CGFloat = 340 // Default width, will be updated by delegate if needed
 
+        print("WindowAttachmentService: updateArcmarkPosition - calculating Arcmark frame with width: \(arcmarkWidth), position: \(sidebarPosition)")
+
         // Calculate new Arcmark frame
         guard let newFrame = calculateArcmarkFrame(browserFrame: browserFrame, arcmarkWidth: arcmarkWidth) else {
             // Invalid frame (browser too narrow, not enough space, etc.)
+            print("WindowAttachmentService: updateArcmarkPosition - calculated frame is invalid (browser too narrow or no space)")
             delegate?.attachmentServiceShouldHideWindow(self)
             return
         }
 
+        print("WindowAttachmentService: updateArcmarkPosition - positioning Arcmark at: \(newFrame)")
+
         // Position the window
         delegate?.attachmentService(self, shouldPositionWindow: newFrame)
+
+        print("WindowAttachmentService: updateArcmarkPosition - position update complete")
     }
 
     // MARK: - Browser Attachment
 
     private func attachToBrowser() {
-        guard let bundleId = currentBrowserBundleId else { return }
+        guard let bundleId = currentBrowserBundleId else {
+            print("WindowAttachmentService: No browser bundle ID configured")
+            return
+        }
 
-        // Check if browser is running and active
+        print("WindowAttachmentService: Attempting to attach to \(bundleId)")
+
+        // Check if browser is running
         guard BrowserManager.isRunning(bundleId: bundleId) else {
-            print("WindowAttachmentService: Browser not running")
+            print("WindowAttachmentService: Browser '\(bundleId)' is not running")
             delegate?.attachmentServiceShouldHideWindow(self)
             return
         }
 
-        guard let frontmost = BrowserManager.frontmostApp(),
-              frontmost.bundleIdentifier == bundleId else {
-            print("WindowAttachmentService: Browser not active")
+        print("WindowAttachmentService: Browser '\(bundleId)' is running")
+
+        // Check if browser is active (frontmost)
+        guard let frontmost = BrowserManager.frontmostApp() else {
+            print("WindowAttachmentService: Could not determine frontmost app")
             delegate?.attachmentServiceShouldHideWindow(self)
             return
         }
+
+        print("WindowAttachmentService: Frontmost app is '\(frontmost.bundleIdentifier ?? "unknown")' (localized name: \(frontmost.localizedName ?? "unknown"))")
+
+        guard frontmost.bundleIdentifier == bundleId else {
+            print("WindowAttachmentService: Browser not active - frontmost is '\(frontmost.bundleIdentifier ?? "unknown")' but expected '\(bundleId)'")
+            delegate?.attachmentServiceShouldHideWindow(self)
+            return
+        }
+
+        print("WindowAttachmentService: Browser is frontmost, looking for window...")
 
         // Find browser window
         guard let windowElement = findFrontmostBrowserWindow() else {
-            print("WindowAttachmentService: Could not find browser window")
+            print("WindowAttachmentService: Could not find browser window (may have no windows open)")
             delegate?.attachmentServiceShouldHideWindow(self)
             return
         }
+
+        print("WindowAttachmentService: Found browser window, setting up observers...")
 
         browserWindowElement = windowElement
         browserApp = frontmost
 
         // Setup observers for this window
         observeBrowserWindow()
+
+        print("WindowAttachmentService: Observers setup, performing initial position update...")
 
         // Perform initial position update
         updateArcmarkPosition()
@@ -298,15 +358,12 @@ final class WindowAttachmentService {
                 let notificationName = notification as String
                 print("WindowAttachmentService: Received notification: \(notificationName)")
 
-                switch notificationName {
-                case kAXMovedNotification as String, kAXResizedNotification as String:
+                if notificationName == (kAXMovedNotification as String) || notificationName == (kAXResizedNotification as String) {
                     service.schedulePositionUpdate()
-                case kAXUIElementDestroyedNotification as String:
+                } else if notificationName == (kAXUIElementDestroyedNotification as String) {
                     print("WindowAttachmentService: Browser window destroyed")
                     service.delegate?.attachmentServiceShouldHideWindow(service)
                     service.cleanupObservers()
-                default:
-                    break
                 }
             }
         }, &observer)
@@ -343,23 +400,34 @@ final class WindowAttachmentService {
     // MARK: - Workspace Observers
 
     private func setupWorkspaceObservers() {
+        print("WindowAttachmentService: Setting up workspace observers...")
+        print("WindowAttachmentService: Observing NSWorkspace.shared = \(NSWorkspace.shared)")
+
         let activatedObserver = NotificationCenter.default.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
-            object: nil,
+            object: NSWorkspace.shared,  // Explicitly observe NSWorkspace.shared
             queue: .main
         ) { [weak self] notification in
-            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+            print("WindowAttachmentService: *** RAW NOTIFICATION RECEIVED *** name: \(notification.name)")
+
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else {
+                print("WindowAttachmentService: Could not get app from notification userInfo")
+                return
+            }
 
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
 
-                print("WindowAttachmentService: App activated: \(app.bundleIdentifier ?? "unknown")")
+                print("WindowAttachmentService: App activated: \(app.bundleIdentifier ?? "unknown") (localized: \(app.localizedName ?? "unknown"))")
+                print("WindowAttachmentService: Current target browser: \(self.currentBrowserBundleId ?? "none")")
 
                 if app.bundleIdentifier == self.currentBrowserBundleId {
                     // Browser became active - attach and show
+                    print("WindowAttachmentService: Target browser activated, attaching...")
                     self.attachToBrowser()
                 } else {
                     // Different app became active - hide Arcmark
+                    print("WindowAttachmentService: Different app activated, hiding Arcmark")
                     self.delegate?.attachmentServiceShouldHideWindow(self)
                 }
             }
@@ -367,9 +435,11 @@ final class WindowAttachmentService {
 
         let terminatedObserver = NotificationCenter.default.addObserver(
             forName: NSWorkspace.didTerminateApplicationNotification,
-            object: nil,
+            object: NSWorkspace.shared,  // Explicitly observe NSWorkspace.shared
             queue: .main
         ) { [weak self] notification in
+            print("WindowAttachmentService: *** RAW TERMINATION NOTIFICATION RECEIVED ***")
+
             guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
 
             Task { @MainActor [weak self] in
@@ -387,18 +457,26 @@ final class WindowAttachmentService {
 
         let launchedObserver = NotificationCenter.default.addObserver(
             forName: NSWorkspace.didLaunchApplicationNotification,
-            object: nil,
+            object: NSWorkspace.shared,  // Explicitly observe NSWorkspace.shared
             queue: .main
         ) { [weak self] notification in
-            guard let self = self, let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+            print("WindowAttachmentService: *** RAW LAUNCH NOTIFICATION RECEIVED ***")
 
-            print("WindowAttachmentService: App launched: \(app.bundleIdentifier ?? "unknown")")
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
 
-            if app.bundleIdentifier == self.currentBrowserBundleId {
-                // Browser launched - wait for activation
-                // Will be handled by didActivateApplicationNotification
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+
+                print("WindowAttachmentService: App launched: \(app.bundleIdentifier ?? "unknown")")
+
+                if app.bundleIdentifier == self.currentBrowserBundleId {
+                    // Browser launched - wait for activation
+                    // Will be handled by didActivateApplicationNotification
+                }
             }
         }
+
+        print("WindowAttachmentService: Registered \(workspaceObservers.count) observers (about to be 3)")
 
         workspaceObservers = [activatedObserver, terminatedObserver, launchedObserver]
         print("WindowAttachmentService: Workspace observers setup complete")

@@ -1,7 +1,10 @@
 import AppKit
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WindowAttachmentServiceDelegate {
+public final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WindowAttachmentServiceDelegate {
+    public override init() {
+        super.init()
+    }
     private var window: NSWindow?
     private var mainViewController: MainViewController?
     private var preferencesWindowController: PreferencesWindowController?
@@ -11,7 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Wind
     private var isAttachmentMode: Bool = false
     private var lastManualFrame: NSRect?
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
+    public func applicationDidFinishLaunching(_ notification: Notification) {
         setupMenus()
 
         let model = AppModel()
@@ -54,13 +57,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Wind
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    func applicationWillTerminate(_ notification: Notification) {
+    public func applicationWillTerminate(_ notification: Notification) {
         if let window {
             saveWindowSize(window)
         }
     }
 
-    func windowDidResize(_ notification: Notification) {
+    public func windowDidResize(_ notification: Notification) {
         guard let window = notification.object as? NSWindow else { return }
         saveWindowSize(window)
     }
@@ -141,7 +144,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Wind
         window?.level = enabled ? .floating : .normal
     }
 
-    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+    public func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         showMainWindow()
         return true
     }
