@@ -6,8 +6,9 @@
 //
 
 import AppKit
-import ApplicationServices
+@preconcurrency import ApplicationServices
 
+@MainActor
 protocol WindowAttachmentServiceDelegate: AnyObject {
     func attachmentService(_ service: WindowAttachmentService, shouldPositionWindow frame: NSRect)
     func attachmentServiceShouldHideWindow(_ service: WindowAttachmentService)
@@ -71,12 +72,14 @@ final class WindowAttachmentService {
     }
 
     func checkAccessibilityPermissions() -> Bool {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: false] as CFDictionary
+        let optionKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+        let options = [optionKey: false] as CFDictionary
         return AXIsProcessTrustedWithOptions(options)
     }
 
     func requestAccessibilityPermissions() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        let optionKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+        let options = [optionKey: true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(options)
     }
 
@@ -207,7 +210,9 @@ final class WindowAttachmentService {
     private func schedulePositionUpdate() {
         positionUpdateTimer?.invalidate()
         positionUpdateTimer = Timer.scheduledTimer(withTimeInterval: positionDebounceInterval, repeats: false) { [weak self] _ in
-            self?.updateArcmarkPosition()
+            Task { @MainActor in
+                self?.updateArcmarkPosition()
+            }
         }
     }
 
@@ -343,16 +348,20 @@ final class WindowAttachmentService {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            guard let self = self, let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
 
-            print("WindowAttachmentService: App activated: \(app.bundleIdentifier ?? "unknown")")
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
 
-            if app.bundleIdentifier == self.currentBrowserBundleId {
-                // Browser became active - attach and show
-                self.attachToBrowser()
-            } else {
-                // Different app became active - hide Arcmark
-                self.delegate?.attachmentServiceShouldHideWindow(self)
+                print("WindowAttachmentService: App activated: \(app.bundleIdentifier ?? "unknown")")
+
+                if app.bundleIdentifier == self.currentBrowserBundleId {
+                    // Browser became active - attach and show
+                    self.attachToBrowser()
+                } else {
+                    // Different app became active - hide Arcmark
+                    self.delegate?.attachmentServiceShouldHideWindow(self)
+                }
             }
         }
 
@@ -361,14 +370,18 @@ final class WindowAttachmentService {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            guard let self = self, let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
 
-            print("WindowAttachmentService: App terminated: \(app.bundleIdentifier ?? "unknown")")
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
 
-            if app.bundleIdentifier == self.currentBrowserBundleId {
-                // Browser quit - hide and cleanup
-                self.delegate?.attachmentServiceShouldHideWindow(self)
-                self.cleanupObservers()
+                print("WindowAttachmentService: App terminated: \(app.bundleIdentifier ?? "unknown")")
+
+                if app.bundleIdentifier == self.currentBrowserBundleId {
+                    // Browser quit - hide and cleanup
+                    self.delegate?.attachmentServiceShouldHideWindow(self)
+                    self.cleanupObservers()
+                }
             }
         }
 

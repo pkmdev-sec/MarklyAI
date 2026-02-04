@@ -1,11 +1,15 @@
 import AppKit
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WindowAttachmentServiceDelegate {
     private var window: NSWindow?
     private var mainViewController: MainViewController?
     private var preferencesWindowController: PreferencesWindowController?
     private var alwaysOnTopMenuItem: NSMenuItem?
+
+    // Attachment state
+    private var isAttachmentMode: Bool = false
+    private var lastManualFrame: NSRect?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupMenus()
@@ -28,7 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.isReleasedWhenClosed = false
         window.backgroundColor = model.currentWorkspace.colorId.backgroundColor
         window.minSize = NSSize(width: 280, height: 420)
-        window.maxSize = NSSize(width: 520, height: 1200)
+        window.maxSize = NSSize(width: 520, height: 10000) // Unlimited height for attachment mode
         let windowAutosaveName = "ArcmarkMainWindow"
         window.setFrameAutosaveName(windowAutosaveName)
         let restoredSize = applySavedWindowSize(to: window)
@@ -45,6 +49,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         self.window = window
         applyAlwaysOnTopFromDefaults()
+        setupAttachmentService()
+        observeBrowserChanges()
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -148,6 +154,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc private func toggleAlwaysOnTop() {
         let enabled = !(UserDefaults.standard.bool(forKey: UserDefaultsKeys.alwaysOnTopEnabled))
+
+        // If enabling always on top, disable attachment first
+        if enabled && isAttachmentMode {
+            // Save current frame before disabling attachment
+            if let window = window {
+                lastManualFrame = window.frame
+            }
+
+            WindowAttachmentService.shared.disable()
+            isAttachmentMode = false
+            UserDefaults.standard.set(false, forKey: UserDefaultsKeys.sidebarAttachmentEnabled)
+            updateWindowConstraints()
+        }
+
         UserDefaults.standard.set(enabled, forKey: UserDefaultsKeys.alwaysOnTopEnabled)
         alwaysOnTopMenuItem?.state = enabled ? .on : .off
         window?.level = enabled ? .floating : .normal
@@ -167,5 +187,110 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc private func newFolder() {
         mainViewController?.createFolderAndBeginRename(parentId: nil)
+    }
+
+    // MARK: - Window Attachment
+
+    private func setupAttachmentService() {
+        WindowAttachmentService.shared.delegate = self
+
+        // Check for mutual exclusion with always on top
+        let alwaysOnTopEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.alwaysOnTopEnabled)
+        if alwaysOnTopEnabled {
+            // Don't enable attachment if always on top is enabled
+            return
+        }
+
+        let attachmentEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.sidebarAttachmentEnabled)
+        guard attachmentEnabled else { return }
+
+        // Load preferences
+        let positionString = UserDefaults.standard.string(forKey: UserDefaultsKeys.sidebarPosition) ?? "right"
+        let position: SidebarPosition = positionString == "left" ? .left : .right
+
+        guard let browserBundleId = BrowserManager.resolveDefaultBrowserBundleId() else {
+            print("AppDelegate: No browser bundle ID available for attachment")
+            return
+        }
+
+        // Save current frame before entering attachment mode
+        if let window = window {
+            lastManualFrame = window.frame
+        }
+
+        isAttachmentMode = true
+        updateWindowConstraints()
+
+        WindowAttachmentService.shared.enable(browserBundleId: browserBundleId, position: position)
+    }
+
+    private func updateWindowConstraints() {
+        guard let window = window else { return }
+
+        if isAttachmentMode {
+            // In attachment mode: allow unlimited height, disable manual movement
+            window.minSize = NSSize(width: 280, height: 100)
+            window.maxSize = NSSize(width: 520, height: 10000)
+            window.isMovable = false
+            window.isMovableByWindowBackground = false
+        } else {
+            // Manual mode: restore original constraints, enable movement
+            window.minSize = NSSize(width: 280, height: 420)
+            window.maxSize = NSSize(width: 520, height: 10000)
+            window.isMovable = true
+            window.isMovableByWindowBackground = true
+
+            // Restore last manual frame if available
+            if let lastFrame = lastManualFrame {
+                window.setFrame(lastFrame, display: true, animate: false)
+            }
+        }
+    }
+
+    private func observeBrowserChanges() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleBrowserChanged),
+            name: .defaultBrowserChanged,
+            object: nil
+        )
+    }
+
+    @objc private func handleBrowserChanged(_ notification: Notification) {
+        guard isAttachmentMode,
+              let bundleId = notification.userInfo?["bundleId"] as? String else {
+            return
+        }
+
+        let positionString = UserDefaults.standard.string(forKey: UserDefaultsKeys.sidebarPosition) ?? "right"
+        let position: SidebarPosition = positionString == "left" ? .left : .right
+
+        WindowAttachmentService.shared.disable()
+        WindowAttachmentService.shared.enable(browserBundleId: bundleId, position: position)
+    }
+
+    // MARK: - WindowAttachmentServiceDelegate
+
+    func attachmentService(_ service: WindowAttachmentService, shouldPositionWindow frame: NSRect) {
+        guard let window = window else { return }
+
+        // Skip if frame hasn't changed
+        if window.frame == frame { return }
+
+        // Apply frame without animation for smooth tracking
+        window.setFrame(frame, display: true, animate: false)
+
+        // Show window if hidden
+        if !window.isVisible {
+            window.orderFront(nil)
+        }
+    }
+
+    func attachmentServiceShouldHideWindow(_ service: WindowAttachmentService) {
+        window?.orderOut(nil)
+    }
+
+    func attachmentServiceShouldShowWindow(_ service: WindowAttachmentService) {
+        window?.orderFront(nil)
     }
 }
