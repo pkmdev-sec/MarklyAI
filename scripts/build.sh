@@ -9,7 +9,7 @@ echo "🔨 Building Arcmark..."
 cd "$(dirname "$0")/.."
 
 # Build the app bundle using swift-bundler
-mint run swift-bundler bundle
+mint run swift-bundler bundle -c release
 
 echo "✅ Build complete!"
 echo "📦 App bundle: .build/bundler/Arcmark.app"
