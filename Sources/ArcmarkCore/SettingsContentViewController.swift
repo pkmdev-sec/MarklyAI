@@ -7,26 +7,28 @@ import AppKit
 
 final class SettingsContentViewController: NSViewController {
     // Browser section
+    private let browserPopupContainer = NSView()
     private let browserPopup = NSPopUpButton()
     private var browsers: [BrowserInfo] = []
 
-    // Window settings section
-    private let alwaysOnTopCheckbox = NSButton(checkboxWithTitle: "Always on Top", target: nil, action: nil)
-    private let attachSidebarCheckbox = NSButton(checkboxWithTitle: "Attach to Window as Sidebar", target: nil, action: nil)
-    private let attachmentInfoLabel = NSTextField(labelWithString: "Disabled when Always on Top is enabled")
+    // Window settings section - custom components
+    private let alwaysOnTopToggle = CustomToggle(title: "Always on Top")
+    private let attachSidebarToggle = CustomToggle(title: "Attach to Window as Sidebar")
     private let sidebarPositionLabel = NSTextField(labelWithString: "Sidebar Position:")
-    private let leftSideRadio = NSButton(radioButtonWithTitle: "Left side", target: nil, action: nil)
-    private let rightSideRadio = NSButton(radioButtonWithTitle: "Right side", target: nil, action: nil)
+    private let sidebarPositionSelector = SidebarPositionSelector()
 
     // Permissions section
     private let permissionStatusLabel = NSTextField(labelWithString: "")
     private let openSettingsButton = NSButton(title: "Open System Settings", target: nil, action: nil)
-    private let refreshStatusButton = NSButton(title: "Refresh Status", target: nil, action: nil)
-    private let permissionInfoLabel = NSTextField(labelWithString: "Required for window attachment")
+    private let refreshStatusButton = CustomTextButton(title: "Refresh Status")
 
     // Scroll view
     private let scrollView = NSScrollView()
-    private let contentView = NSView()
+    private let contentView = FlippedContentView()
+
+    // Dynamic constraints
+    private var separator1ToSelectorConstraint: NSLayoutConstraint?
+    private var separator1ToToggleConstraint: NSLayoutConstraint?
 
     override func loadView() {
         let view = NSView()
@@ -87,10 +89,17 @@ final class SettingsContentViewController: NSViewController {
     }
 
     private func createSectionHeader(_ title: String) -> NSTextField {
-        let label = NSTextField(labelWithString: title)
-        label.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
-        label.textColor = NSColor(calibratedRed: 0.078, green: 0.078, blue: 0.078, alpha: 1.0)
+        let label = NSTextField(labelWithString: title.uppercased())
+        label.font = NSFont.systemFont(ofSize: 11, weight: .bold)
+        label.textColor = NSColor(calibratedRed: 0.078, green: 0.078, blue: 0.078, alpha: 0.7)
         label.translatesAutoresizingMaskIntoConstraints = false
+
+        // Set letter spacing
+        if let attrString = label.attributedStringValue.mutableCopy() as? NSMutableAttributedString {
+            attrString.addAttribute(.kern, value: 0.5, range: NSRange(location: 0, length: attrString.length))
+            label.attributedStringValue = attrString
+        }
+
         return label
     }
 
@@ -105,28 +114,23 @@ final class SettingsContentViewController: NSViewController {
         // Window Settings Section
         let windowSettingsHeader = createSectionHeader("Window Settings")
 
-        alwaysOnTopCheckbox.target = self
-        alwaysOnTopCheckbox.action = #selector(alwaysOnTopChanged)
-        alwaysOnTopCheckbox.translatesAutoresizingMaskIntoConstraints = false
+        alwaysOnTopToggle.target = self
+        alwaysOnTopToggle.action = #selector(alwaysOnTopChanged)
+        alwaysOnTopToggle.translatesAutoresizingMaskIntoConstraints = false
 
-        attachSidebarCheckbox.target = self
-        attachSidebarCheckbox.action = #selector(attachSidebarChanged)
-        attachSidebarCheckbox.translatesAutoresizingMaskIntoConstraints = false
+        attachSidebarToggle.target = self
+        attachSidebarToggle.action = #selector(attachSidebarChanged)
+        attachSidebarToggle.translatesAutoresizingMaskIntoConstraints = false
 
-        attachmentInfoLabel.font = NSFont.systemFont(ofSize: 11)
-        attachmentInfoLabel.textColor = NSColor(calibratedRed: 0.078, green: 0.078, blue: 0.078, alpha: 0.6)
-        attachmentInfoLabel.translatesAutoresizingMaskIntoConstraints = false
-
+        sidebarPositionLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
         sidebarPositionLabel.textColor = NSColor(calibratedRed: 0.078, green: 0.078, blue: 0.078, alpha: 1.0)
         sidebarPositionLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        leftSideRadio.target = self
-        leftSideRadio.action = #selector(sidebarPositionChanged)
-        leftSideRadio.translatesAutoresizingMaskIntoConstraints = false
-
-        rightSideRadio.target = self
-        rightSideRadio.action = #selector(sidebarPositionChanged)
-        rightSideRadio.translatesAutoresizingMaskIntoConstraints = false
+        // Setup position selector
+        sidebarPositionSelector.translatesAutoresizingMaskIntoConstraints = false
+        sidebarPositionSelector.onPositionChanged = { [weak self] _ in
+            self?.sidebarPositionChanged()
+        }
 
         let separator1 = createSeparator()
 
@@ -134,52 +138,62 @@ final class SettingsContentViewController: NSViewController {
         let browserHeader = createSectionHeader("Browser")
 
         let browserLabel = NSTextField(labelWithString: "Default Browser")
+        browserLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
         browserLabel.textColor = NSColor(calibratedRed: 0.078, green: 0.078, blue: 0.078, alpha: 1.0)
         browserLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        // Browser popup container with styled background
+        browserPopupContainer.translatesAutoresizingMaskIntoConstraints = false
+        browserPopupContainer.wantsLayer = true
+        browserPopupContainer.layer?.backgroundColor = NSColor(calibratedRed: 0.078, green: 0.078, blue: 0.078, alpha: 0.08).cgColor
+        browserPopupContainer.layer?.cornerRadius = 8
 
         browserPopup.translatesAutoresizingMaskIntoConstraints = false
         browserPopup.target = self
         browserPopup.action = #selector(browserChanged)
+        browserPopup.font = NSFont.systemFont(ofSize: 13)
+        browserPopup.isBordered = false
+        browserPopup.focusRingType = .none
+
+        // Set content tint color for the chevron arrow
+        if #available(macOS 14.0, *) {
+            browserPopup.contentTintColor = NSColor(calibratedRed: 0.078, green: 0.078, blue: 0.078, alpha: 0.80)
+        }
 
         let separator2 = createSeparator()
 
         // Permissions Section
         let permissionsHeader = createSectionHeader("Permissions")
 
+        permissionStatusLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
         permissionStatusLabel.translatesAutoresizingMaskIntoConstraints = false
 
         openSettingsButton.target = self
         openSettingsButton.action = #selector(openAccessibilitySettings)
         openSettingsButton.translatesAutoresizingMaskIntoConstraints = false
         openSettingsButton.bezelStyle = .rounded
+        openSettingsButton.font = NSFont.systemFont(ofSize: 13)
 
         refreshStatusButton.target = self
         refreshStatusButton.action = #selector(refreshPermissionStatus)
         refreshStatusButton.translatesAutoresizingMaskIntoConstraints = false
-        refreshStatusButton.bezelStyle = .rounded
-
-        permissionInfoLabel.font = NSFont.systemFont(ofSize: 11)
-        permissionInfoLabel.textColor = NSColor(calibratedRed: 0.078, green: 0.078, blue: 0.078, alpha: 0.6)
-        permissionInfoLabel.translatesAutoresizingMaskIntoConstraints = false
 
         // Add all subviews to contentView
         contentView.addSubview(windowSettingsHeader)
-        contentView.addSubview(alwaysOnTopCheckbox)
-        contentView.addSubview(attachSidebarCheckbox)
-        contentView.addSubview(attachmentInfoLabel)
+        contentView.addSubview(alwaysOnTopToggle)
+        contentView.addSubview(attachSidebarToggle)
         contentView.addSubview(sidebarPositionLabel)
-        contentView.addSubview(leftSideRadio)
-        contentView.addSubview(rightSideRadio)
+        contentView.addSubview(sidebarPositionSelector)
         contentView.addSubview(separator1)
         contentView.addSubview(browserHeader)
         contentView.addSubview(browserLabel)
-        contentView.addSubview(browserPopup)
+        contentView.addSubview(browserPopupContainer)
+        browserPopupContainer.addSubview(browserPopup)
         contentView.addSubview(separator2)
         contentView.addSubview(permissionsHeader)
         contentView.addSubview(permissionStatusLabel)
         contentView.addSubview(openSettingsButton)
         contentView.addSubview(refreshStatusButton)
-        contentView.addSubview(permissionInfoLabel)
 
         // Layout constraints
         NSLayoutConstraint.activate([
@@ -187,100 +201,100 @@ final class SettingsContentViewController: NSViewController {
             contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
 
             // Window Settings Header
-            windowSettingsHeader.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            windowSettingsHeader.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
+            windowSettingsHeader.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            windowSettingsHeader.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24),
 
-            // Always on Top Checkbox
-            alwaysOnTopCheckbox.leadingAnchor.constraint(equalTo: windowSettingsHeader.leadingAnchor),
-            alwaysOnTopCheckbox.topAnchor.constraint(equalTo: windowSettingsHeader.bottomAnchor, constant: 12),
+            // Always on Top Toggle
+            alwaysOnTopToggle.leadingAnchor.constraint(equalTo: windowSettingsHeader.leadingAnchor),
+            alwaysOnTopToggle.topAnchor.constraint(equalTo: windowSettingsHeader.bottomAnchor, constant: 16),
+            alwaysOnTopToggle.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
+            alwaysOnTopToggle.heightAnchor.constraint(equalToConstant: 28),
 
-            // Attach Sidebar Checkbox
-            attachSidebarCheckbox.leadingAnchor.constraint(equalTo: alwaysOnTopCheckbox.leadingAnchor),
-            attachSidebarCheckbox.topAnchor.constraint(equalTo: alwaysOnTopCheckbox.bottomAnchor, constant: 8),
-
-            // Attachment Info Label
-            attachmentInfoLabel.leadingAnchor.constraint(equalTo: attachSidebarCheckbox.leadingAnchor, constant: 20),
-            attachmentInfoLabel.topAnchor.constraint(equalTo: attachSidebarCheckbox.bottomAnchor, constant: 4),
+            // Attach Sidebar Toggle
+            attachSidebarToggle.leadingAnchor.constraint(equalTo: alwaysOnTopToggle.leadingAnchor),
+            attachSidebarToggle.topAnchor.constraint(equalTo: alwaysOnTopToggle.bottomAnchor, constant: 12),
+            attachSidebarToggle.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
+            attachSidebarToggle.heightAnchor.constraint(equalToConstant: 28),
 
             // Sidebar Position Label
-            sidebarPositionLabel.leadingAnchor.constraint(equalTo: attachSidebarCheckbox.leadingAnchor),
-            sidebarPositionLabel.topAnchor.constraint(equalTo: attachmentInfoLabel.bottomAnchor, constant: 12),
+            sidebarPositionLabel.leadingAnchor.constraint(equalTo: attachSidebarToggle.leadingAnchor),
+            sidebarPositionLabel.topAnchor.constraint(equalTo: attachSidebarToggle.bottomAnchor, constant: 16),
 
-            // Radio buttons
-            leftSideRadio.leadingAnchor.constraint(equalTo: sidebarPositionLabel.leadingAnchor, constant: 20),
-            leftSideRadio.topAnchor.constraint(equalTo: sidebarPositionLabel.bottomAnchor, constant: 6),
-
-            rightSideRadio.leadingAnchor.constraint(equalTo: leftSideRadio.trailingAnchor, constant: 20),
-            rightSideRadio.topAnchor.constraint(equalTo: leftSideRadio.topAnchor),
+            // Position selector buttons
+            sidebarPositionSelector.leadingAnchor.constraint(equalTo: sidebarPositionLabel.leadingAnchor),
+            sidebarPositionSelector.topAnchor.constraint(equalTo: sidebarPositionLabel.bottomAnchor, constant: 10),
+            sidebarPositionSelector.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
 
             // Separator 1
-            separator1.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            separator1.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            separator1.topAnchor.constraint(equalTo: leftSideRadio.bottomAnchor, constant: 16),
+            separator1.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            separator1.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
             separator1.heightAnchor.constraint(equalToConstant: 1),
 
             // Browser Header
-            browserHeader.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            browserHeader.topAnchor.constraint(equalTo: separator1.bottomAnchor, constant: 16),
+            browserHeader.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            browserHeader.topAnchor.constraint(equalTo: separator1.bottomAnchor, constant: 20),
 
             // Browser Label
             browserLabel.leadingAnchor.constraint(equalTo: browserHeader.leadingAnchor),
-            browserLabel.topAnchor.constraint(equalTo: browserHeader.bottomAnchor, constant: 12),
+            browserLabel.topAnchor.constraint(equalTo: browserHeader.bottomAnchor, constant: 16),
 
-            // Browser Popup
-            browserPopup.leadingAnchor.constraint(equalTo: browserLabel.leadingAnchor),
-            browserPopup.topAnchor.constraint(equalTo: browserLabel.bottomAnchor, constant: 8),
-            browserPopup.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            // Browser Popup Container - full width
+            browserPopupContainer.leadingAnchor.constraint(equalTo: browserLabel.leadingAnchor),
+            browserPopupContainer.topAnchor.constraint(equalTo: browserLabel.bottomAnchor, constant: 8),
+            browserPopupContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
+            browserPopupContainer.heightAnchor.constraint(equalToConstant: 36),
+
+            // Browser Popup inside container
+            browserPopup.leadingAnchor.constraint(equalTo: browserPopupContainer.leadingAnchor, constant: 12),
+            browserPopup.trailingAnchor.constraint(equalTo: browserPopupContainer.trailingAnchor, constant: -12),
+            browserPopup.centerYAnchor.constraint(equalTo: browserPopupContainer.centerYAnchor),
 
             // Separator 2
-            separator2.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            separator2.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            separator2.topAnchor.constraint(equalTo: browserPopup.bottomAnchor, constant: 16),
+            separator2.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            separator2.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
+            separator2.topAnchor.constraint(equalTo: browserPopupContainer.bottomAnchor, constant: 20),
             separator2.heightAnchor.constraint(equalToConstant: 1),
 
             // Permissions Header
-            permissionsHeader.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            permissionsHeader.topAnchor.constraint(equalTo: separator2.bottomAnchor, constant: 16),
+            permissionsHeader.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            permissionsHeader.topAnchor.constraint(equalTo: separator2.bottomAnchor, constant: 20),
 
             // Permission Status Label
             permissionStatusLabel.leadingAnchor.constraint(equalTo: permissionsHeader.leadingAnchor),
-            permissionStatusLabel.topAnchor.constraint(equalTo: permissionsHeader.bottomAnchor, constant: 12),
+            permissionStatusLabel.topAnchor.constraint(equalTo: permissionsHeader.bottomAnchor, constant: 16),
 
-            // Open Settings Button
-            openSettingsButton.leadingAnchor.constraint(equalTo: permissionStatusLabel.leadingAnchor),
-            openSettingsButton.topAnchor.constraint(equalTo: permissionStatusLabel.bottomAnchor, constant: 8),
+            // Refresh Status Button (below status label)
+            refreshStatusButton.leadingAnchor.constraint(equalTo: permissionStatusLabel.leadingAnchor),
+            refreshStatusButton.topAnchor.constraint(equalTo: permissionStatusLabel.bottomAnchor, constant: 8),
 
-            // Refresh Status Button (next to Open Settings)
-            refreshStatusButton.leadingAnchor.constraint(equalTo: openSettingsButton.trailingAnchor, constant: 8),
-            refreshStatusButton.centerYAnchor.constraint(equalTo: openSettingsButton.centerYAnchor),
+            // Open Settings Button (below refresh button)
+            openSettingsButton.leadingAnchor.constraint(equalTo: refreshStatusButton.leadingAnchor),
+            openSettingsButton.topAnchor.constraint(equalTo: refreshStatusButton.bottomAnchor, constant: 12),
 
-            // Permission Info Label
-            permissionInfoLabel.leadingAnchor.constraint(equalTo: openSettingsButton.leadingAnchor),
-            permissionInfoLabel.topAnchor.constraint(equalTo: openSettingsButton.bottomAnchor, constant: 4),
-
-            // Bottom constraint to define content height
-            permissionInfoLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20),
+            // Bottom constraint to define content height - use greaterThanOrEqualTo to allow content to be anchored at top
+            contentView.bottomAnchor.constraint(greaterThanOrEqualTo: openSettingsButton.bottomAnchor, constant: 24),
         ])
+
+        // Setup dynamic constraints for separator1
+        separator1ToSelectorConstraint = separator1.topAnchor.constraint(equalTo: sidebarPositionSelector.bottomAnchor, constant: 20)
+        separator1ToToggleConstraint = separator1.topAnchor.constraint(equalTo: attachSidebarToggle.bottomAnchor, constant: 20)
+
+        // Activate the appropriate constraint based on initial state
+        separator1ToSelectorConstraint?.isActive = true
     }
 
     private func loadPreferences() {
         // Load Always on Top state
         let alwaysOnTopEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.alwaysOnTopEnabled)
-        alwaysOnTopCheckbox.state = alwaysOnTopEnabled ? .on : .off
+        alwaysOnTopToggle.isOn = alwaysOnTopEnabled
 
         // Load Attach to Sidebar state
         let attachmentEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.sidebarAttachmentEnabled)
-        attachSidebarCheckbox.state = attachmentEnabled ? .on : .off
+        attachSidebarToggle.isOn = attachmentEnabled
 
         // Load sidebar position
         let positionString = UserDefaults.standard.string(forKey: UserDefaultsKeys.sidebarPosition) ?? "right"
-        if positionString == "left" {
-            leftSideRadio.state = .on
-            rightSideRadio.state = .off
-        } else {
-            leftSideRadio.state = .off
-            rightSideRadio.state = .on
-        }
+        sidebarPositionSelector.selectedPosition = positionString
 
         // Apply mutual exclusion and enable states
         updateControlStates()
@@ -292,6 +306,7 @@ final class SettingsContentViewController: NSViewController {
         if browserPopup.menu == nil {
             browserPopup.menu = NSMenu()
         }
+
         for browser in browsers {
             let item = NSMenuItem(title: browser.name, action: nil, keyEquivalent: "")
             item.representedObject = browser.bundleId
@@ -309,6 +324,21 @@ final class SettingsContentViewController: NSViewController {
             browserPopup.selectItem(at: 0)
             UserDefaults.standard.set(browsers[0].bundleId, forKey: UserDefaultsKeys.defaultBrowserBundleId)
         }
+
+        // Update the title color after selection
+        updateBrowserPopupAppearance()
+    }
+
+    private func updateBrowserPopupAppearance() {
+        let darkGray = NSColor(calibratedRed: 0.078, green: 0.078, blue: 0.078, alpha: 1.0)
+        let attributes: [NSAttributedString.Key: Any] = [
+            .foregroundColor: darkGray,
+            .font: NSFont.systemFont(ofSize: 13)
+        ]
+
+        if let title = browserPopup.titleOfSelectedItem {
+            browserPopup.attributedTitle = NSAttributedString(string: title, attributes: attributes)
+        }
     }
 
     private func updatePermissionStatus() {
@@ -316,47 +346,59 @@ final class SettingsContentViewController: NSViewController {
 
         if hasPermission {
             permissionStatusLabel.stringValue = "Accessibility Access: ✓ Granted"
-            permissionStatusLabel.textColor = NSColor.systemGreen
+            // Use a darker green for better readability
+            permissionStatusLabel.textColor = NSColor(calibratedRed: 0.13, green: 0.67, blue: 0.29, alpha: 1.0)
             openSettingsButton.isHidden = true
         } else {
             permissionStatusLabel.stringValue = "Accessibility Access: ✗ Not Granted"
-            permissionStatusLabel.textColor = NSColor.systemRed
+            // Use a darker red for better readability
+            permissionStatusLabel.textColor = NSColor(calibratedRed: 0.85, green: 0.23, blue: 0.23, alpha: 1.0)
             openSettingsButton.isHidden = false
         }
     }
 
     private func updateControlStates() {
-        let alwaysOnTopEnabled = alwaysOnTopCheckbox.state == .on
-        let attachmentEnabled = attachSidebarCheckbox.state == .on
+        let alwaysOnTopEnabled = alwaysOnTopToggle.isOn
+        let attachmentEnabled = attachSidebarToggle.isOn
+
+        // Determine if sidebar position should be visible
+        let shouldShowSidebarPosition = !alwaysOnTopEnabled && attachmentEnabled
 
         // Mutual exclusion
         if alwaysOnTopEnabled {
-            attachSidebarCheckbox.isEnabled = false
-            sidebarPositionLabel.isEnabled = false
-            leftSideRadio.isEnabled = false
-            rightSideRadio.isEnabled = false
+            attachSidebarToggle.isEnabled = false
         } else {
-            attachSidebarCheckbox.isEnabled = true
-            sidebarPositionLabel.isEnabled = attachmentEnabled
-            leftSideRadio.isEnabled = attachmentEnabled
-            rightSideRadio.isEnabled = attachmentEnabled
+            attachSidebarToggle.isEnabled = true
         }
 
         if attachmentEnabled {
-            alwaysOnTopCheckbox.isEnabled = false
+            alwaysOnTopToggle.isEnabled = false
         } else {
-            alwaysOnTopCheckbox.isEnabled = true
+            alwaysOnTopToggle.isEnabled = true
+        }
+
+        // Update visibility and layout constraints
+        sidebarPositionLabel.isHidden = !shouldShowSidebarPosition
+        sidebarPositionSelector.isHidden = !shouldShowSidebarPosition
+
+        // Switch constraints based on visibility
+        if shouldShowSidebarPosition {
+            separator1ToToggleConstraint?.isActive = false
+            separator1ToSelectorConstraint?.isActive = true
+        } else {
+            separator1ToSelectorConstraint?.isActive = false
+            separator1ToToggleConstraint?.isActive = true
         }
     }
 
     // MARK: - Actions
 
     @objc private func alwaysOnTopChanged() {
-        let enabled = alwaysOnTopCheckbox.state == .on
+        let enabled = alwaysOnTopToggle.isOn
 
         // If enabling, disable attachment first
-        if enabled && attachSidebarCheckbox.state == .on {
-            attachSidebarCheckbox.state = .off
+        if enabled && attachSidebarToggle.isOn {
+            attachSidebarToggle.isOn = false
             UserDefaults.standard.set(false, forKey: UserDefaultsKeys.sidebarAttachmentEnabled)
 
             // Notify to disable attachment
@@ -372,7 +414,7 @@ final class SettingsContentViewController: NSViewController {
     }
 
     @objc private func attachSidebarChanged() {
-        let enabled = attachSidebarCheckbox.state == .on
+        let enabled = attachSidebarToggle.isOn
 
         // Check permissions
         if enabled && !WindowAttachmentService.shared.checkAccessibilityPermissions() {
@@ -383,13 +425,13 @@ final class SettingsContentViewController: NSViewController {
             alert.addButton(withTitle: "OK")
             alert.runModal()
 
-            attachSidebarCheckbox.state = .off
+            attachSidebarToggle.isOn = false
             return
         }
 
         // If enabling, disable always on top first
-        if enabled && alwaysOnTopCheckbox.state == .on {
-            alwaysOnTopCheckbox.state = .off
+        if enabled && alwaysOnTopToggle.isOn {
+            alwaysOnTopToggle.isOn = false
             UserDefaults.standard.set(false, forKey: UserDefaultsKeys.alwaysOnTopEnabled)
 
             // Notify to disable always on top
@@ -399,7 +441,7 @@ final class SettingsContentViewController: NSViewController {
         UserDefaults.standard.set(enabled, forKey: UserDefaultsKeys.sidebarAttachmentEnabled)
 
         // Get current position
-        let position = leftSideRadio.state == .on ? "left" : "right"
+        let position = sidebarPositionSelector.selectedPosition ?? "right"
 
         // Notify to enable/disable attachment
         NotificationCenter.default.post(
@@ -412,22 +454,12 @@ final class SettingsContentViewController: NSViewController {
     }
 
     @objc private func sidebarPositionChanged() {
-        let isLeft = leftSideRadio.state == .on
+        guard let position = sidebarPositionSelector.selectedPosition else { return }
 
-        // Update radio button states
-        if isLeft {
-            leftSideRadio.state = .on
-            rightSideRadio.state = .off
-        } else {
-            leftSideRadio.state = .off
-            rightSideRadio.state = .on
-        }
-
-        let position = isLeft ? "left" : "right"
         UserDefaults.standard.set(position, forKey: UserDefaultsKeys.sidebarPosition)
 
         // If attachment is currently enabled, notify to update position
-        if attachSidebarCheckbox.state == .on {
+        if attachSidebarToggle.isOn {
             NotificationCenter.default.post(
                 name: .sidebarPositionChanged,
                 object: nil,
@@ -439,6 +471,9 @@ final class SettingsContentViewController: NSViewController {
     @objc private func browserChanged() {
         if let bundleId = browserPopup.selectedItem?.representedObject as? String {
             UserDefaults.standard.set(bundleId, forKey: UserDefaultsKeys.defaultBrowserBundleId)
+
+            // Update appearance after change
+            updateBrowserPopupAppearance()
 
             // Notify about browser change
             NotificationCenter.default.post(
@@ -462,5 +497,14 @@ final class SettingsContentViewController: NSViewController {
 
     @objc private func refreshPermissionStatus() {
         updatePermissionStatus()
+    }
+}
+
+// MARK: - Flipped Content View
+
+/// A custom NSView that uses flipped coordinates so content is anchored to the top
+private final class FlippedContentView: NSView {
+    override var isFlipped: Bool {
+        return true
     }
 }
