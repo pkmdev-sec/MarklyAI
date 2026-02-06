@@ -8,6 +8,14 @@ import AppKit
 final class SettingsContentViewController: NSViewController {
     // Layout constants
     private let horizontalPadding: CGFloat = 8
+    private let sectionSpacing: CGFloat = 12        // Distance between sections
+    private let sectionHeaderSpacing: CGFloat = 8   // Distance between section name and content
+    private let itemSpacing: CGFloat = 8           // Distance between items within a section
+    private let controlLabelSpacing: CGFloat = 4    // Distance between label and control
+
+    // Color constants
+    private let sectionHeaderColor = NSColor(calibratedRed: 0.078, green: 0.078, blue: 0.078, alpha: 0.5)
+    private let regularTextColor = NSColor(calibratedRed: 0.078, green: 0.078, blue: 0.078, alpha: 1.0)
 
     // Browser section
     private let browserPopupContainer = NSView()
@@ -94,7 +102,7 @@ final class SettingsContentViewController: NSViewController {
     private func createSectionHeader(_ title: String) -> NSTextField {
         let label = NSTextField(labelWithString: title.uppercased())
         label.font = NSFont.systemFont(ofSize: 11, weight: .bold)
-        label.textColor = NSColor(calibratedRed: 0.078, green: 0.078, blue: 0.078, alpha: 0.7)
+        label.textColor = sectionHeaderColor
         label.translatesAutoresizingMaskIntoConstraints = false
 
         // Set letter spacing
@@ -126,7 +134,7 @@ final class SettingsContentViewController: NSViewController {
         attachSidebarToggle.translatesAutoresizingMaskIntoConstraints = false
 
         sidebarPositionLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        sidebarPositionLabel.textColor = NSColor(calibratedRed: 0.078, green: 0.078, blue: 0.078, alpha: 1.0)
+        sidebarPositionLabel.textColor = regularTextColor
         sidebarPositionLabel.translatesAutoresizingMaskIntoConstraints = false
 
         // Setup position selector
@@ -142,7 +150,7 @@ final class SettingsContentViewController: NSViewController {
 
         let browserLabel = NSTextField(labelWithString: "Default Browser")
         browserLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        browserLabel.textColor = NSColor(calibratedRed: 0.078, green: 0.078, blue: 0.078, alpha: 1.0)
+        browserLabel.textColor = regularTextColor
         browserLabel.translatesAutoresizingMaskIntoConstraints = false
 
         // Browser popup container with styled background
@@ -209,23 +217,23 @@ final class SettingsContentViewController: NSViewController {
 
             // Always on Top Toggle
             alwaysOnTopToggle.leadingAnchor.constraint(equalTo: windowSettingsHeader.leadingAnchor),
-            alwaysOnTopToggle.topAnchor.constraint(equalTo: windowSettingsHeader.bottomAnchor, constant: 16),
+            alwaysOnTopToggle.topAnchor.constraint(equalTo: windowSettingsHeader.bottomAnchor, constant: sectionHeaderSpacing),
             alwaysOnTopToggle.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
             alwaysOnTopToggle.heightAnchor.constraint(equalToConstant: 28),
 
             // Attach Sidebar Toggle
             attachSidebarToggle.leadingAnchor.constraint(equalTo: alwaysOnTopToggle.leadingAnchor),
-            attachSidebarToggle.topAnchor.constraint(equalTo: alwaysOnTopToggle.bottomAnchor, constant: 12),
+            attachSidebarToggle.topAnchor.constraint(equalTo: alwaysOnTopToggle.bottomAnchor, constant: itemSpacing),
             attachSidebarToggle.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
             attachSidebarToggle.heightAnchor.constraint(equalToConstant: 28),
 
             // Sidebar Position Label
             sidebarPositionLabel.leadingAnchor.constraint(equalTo: attachSidebarToggle.leadingAnchor),
-            sidebarPositionLabel.topAnchor.constraint(equalTo: attachSidebarToggle.bottomAnchor, constant: 16),
+            sidebarPositionLabel.topAnchor.constraint(equalTo: attachSidebarToggle.bottomAnchor, constant: itemSpacing),
 
             // Position selector buttons
             sidebarPositionSelector.leadingAnchor.constraint(equalTo: sidebarPositionLabel.leadingAnchor),
-            sidebarPositionSelector.topAnchor.constraint(equalTo: sidebarPositionLabel.bottomAnchor, constant: 10),
+            sidebarPositionSelector.topAnchor.constraint(equalTo: sidebarPositionLabel.bottomAnchor, constant: controlLabelSpacing),
             sidebarPositionSelector.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
 
             // Separator 1
@@ -235,15 +243,15 @@ final class SettingsContentViewController: NSViewController {
 
             // Browser Header
             browserHeader.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding),
-            browserHeader.topAnchor.constraint(equalTo: separator1.bottomAnchor, constant: 20),
+            browserHeader.topAnchor.constraint(equalTo: separator1.bottomAnchor, constant: sectionSpacing),
 
             // Browser Label
             browserLabel.leadingAnchor.constraint(equalTo: browserHeader.leadingAnchor),
-            browserLabel.topAnchor.constraint(equalTo: browserHeader.bottomAnchor, constant: 16),
+            browserLabel.topAnchor.constraint(equalTo: browserHeader.bottomAnchor, constant: sectionHeaderSpacing),
 
-            // Browser Popup Container - full width
+            // Browser Popup Container
             browserPopupContainer.leadingAnchor.constraint(equalTo: browserLabel.leadingAnchor),
-            browserPopupContainer.topAnchor.constraint(equalTo: browserLabel.bottomAnchor, constant: 8),
+            browserPopupContainer.topAnchor.constraint(equalTo: browserLabel.bottomAnchor, constant: controlLabelSpacing),
             browserPopupContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
             browserPopupContainer.heightAnchor.constraint(equalToConstant: 36),
 
@@ -255,32 +263,32 @@ final class SettingsContentViewController: NSViewController {
             // Separator 2
             separator2.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding),
             separator2.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
-            separator2.topAnchor.constraint(equalTo: browserPopupContainer.bottomAnchor, constant: 20),
+            separator2.topAnchor.constraint(equalTo: browserPopupContainer.bottomAnchor, constant: sectionSpacing),
             separator2.heightAnchor.constraint(equalToConstant: 1),
 
             // Permissions Header
             permissionsHeader.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding),
-            permissionsHeader.topAnchor.constraint(equalTo: separator2.bottomAnchor, constant: 20),
+            permissionsHeader.topAnchor.constraint(equalTo: separator2.bottomAnchor, constant: sectionSpacing),
 
             // Permission Status Label
             permissionStatusLabel.leadingAnchor.constraint(equalTo: permissionsHeader.leadingAnchor),
-            permissionStatusLabel.topAnchor.constraint(equalTo: permissionsHeader.bottomAnchor, constant: 16),
+            permissionStatusLabel.topAnchor.constraint(equalTo: permissionsHeader.bottomAnchor, constant: sectionHeaderSpacing),
 
             // Refresh Status Button (below status label)
             refreshStatusButton.leadingAnchor.constraint(equalTo: permissionStatusLabel.leadingAnchor),
-            refreshStatusButton.topAnchor.constraint(equalTo: permissionStatusLabel.bottomAnchor, constant: 8),
+            refreshStatusButton.topAnchor.constraint(equalTo: permissionStatusLabel.bottomAnchor, constant: itemSpacing),
 
             // Open Settings Button (below refresh button)
             openSettingsButton.leadingAnchor.constraint(equalTo: refreshStatusButton.leadingAnchor),
-            openSettingsButton.topAnchor.constraint(equalTo: refreshStatusButton.bottomAnchor, constant: 12),
+            openSettingsButton.topAnchor.constraint(equalTo: refreshStatusButton.bottomAnchor, constant: itemSpacing),
 
             // Bottom constraint to define content height - use greaterThanOrEqualTo to allow content to be anchored at top
             contentView.bottomAnchor.constraint(greaterThanOrEqualTo: openSettingsButton.bottomAnchor, constant: 24),
         ])
 
         // Setup dynamic constraints for separator1
-        separator1ToSelectorConstraint = separator1.topAnchor.constraint(equalTo: sidebarPositionSelector.bottomAnchor, constant: 20)
-        separator1ToToggleConstraint = separator1.topAnchor.constraint(equalTo: attachSidebarToggle.bottomAnchor, constant: 20)
+        separator1ToSelectorConstraint = separator1.topAnchor.constraint(equalTo: sidebarPositionSelector.bottomAnchor, constant: sectionSpacing)
+        separator1ToToggleConstraint = separator1.topAnchor.constraint(equalTo: attachSidebarToggle.bottomAnchor, constant: sectionSpacing)
 
         // Activate the appropriate constraint based on initial state
         separator1ToSelectorConstraint?.isActive = true
@@ -333,9 +341,8 @@ final class SettingsContentViewController: NSViewController {
     }
 
     private func updateBrowserPopupAppearance() {
-        let darkGray = NSColor(calibratedRed: 0.078, green: 0.078, blue: 0.078, alpha: 1.0)
         let attributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: darkGray,
+            .foregroundColor: regularTextColor,
             .font: NSFont.systemFont(ofSize: 13)
         ]
 
