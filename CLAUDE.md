@@ -12,8 +12,11 @@ Arcmark is a macOS bookmark management application built with Swift and AppKit. 
 
 ### Building and Testing
 ```bash
-# Build the project
-swift build
+# Build the app bundle (creates .build/bundler/Arcmark.app)
+./scripts/build.sh
+
+# Build and run the app
+./scripts/run.sh
 
 # Run tests
 swift test
@@ -21,9 +24,17 @@ swift test
 # Run a single test
 swift test --filter ModelTests.testJSONRoundTrip
 
-# Build for release
+# Build for release with Swift PM (library only)
 swift build -c release
 ```
+
+**Build System:** The app uses Swift Bundler to create macOS app bundles. The build script automatically:
+- Builds the app with Swift Bundler
+- Patches Info.plist to ensure CFBundleIdentifier is present
+- Code signs the app with an ad-hoc signature
+- Verifies the build
+
+See [docs/BUILD_AND_CODESIGN.md](docs/BUILD_AND_CODESIGN.md) for detailed information about the build process, code signing, and verification.
 
 ## Architecture
 
