@@ -5,3 +5,6 @@ identifier = 'com.arcmark.app'
 product = 'Arcmark'
 version = '1.0.0'
 category = 'public.app-category.productivity'
+
+[apps.Arcmark.plist]
+CFBundleIdentifier = 'com.arcmark.app'
