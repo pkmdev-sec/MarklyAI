@@ -21,6 +21,7 @@ final class PreferencesViewController: NSViewController {
     // Permissions section
     private let permissionStatusLabel = NSTextField(labelWithString: "")
     private let openSettingsButton = NSButton(title: "Open System Settings", target: nil, action: nil)
+    private let refreshStatusButton = NSButton(title: "Refresh Status", target: nil, action: nil)
     private let permissionInfoLabel = NSTextField(labelWithString: "Required for window attachment")
 
     override func loadView() {
@@ -35,12 +36,29 @@ final class PreferencesViewController: NSViewController {
         loadPreferences()
         loadBrowsers()
         updatePermissionStatus()
+
+        // Observe app activation to refresh permission status
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applicationDidBecomeActive),
+            name: NSApplication.didBecomeActiveNotification,
+            object: nil
+        )
     }
 
     override func viewDidAppear() {
         super.viewDidAppear()
         // Re-check permissions when window appears
         updatePermissionStatus()
+    }
+
+    @objc private func applicationDidBecomeActive() {
+        // Re-check permissions when app becomes active (user may have granted in System Settings)
+        updatePermissionStatus()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     private func createSectionHeader(_ title: String) -> NSTextField {
@@ -107,6 +125,11 @@ final class PreferencesViewController: NSViewController {
         openSettingsButton.translatesAutoresizingMaskIntoConstraints = false
         openSettingsButton.bezelStyle = .rounded
 
+        refreshStatusButton.target = self
+        refreshStatusButton.action = #selector(refreshPermissionStatus)
+        refreshStatusButton.translatesAutoresizingMaskIntoConstraints = false
+        refreshStatusButton.bezelStyle = .rounded
+
         permissionInfoLabel.font = NSFont.systemFont(ofSize: 11)
         permissionInfoLabel.textColor = NSColor.secondaryLabelColor
         permissionInfoLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -127,6 +150,7 @@ final class PreferencesViewController: NSViewController {
         view.addSubview(permissionsHeader)
         view.addSubview(permissionStatusLabel)
         view.addSubview(openSettingsButton)
+        view.addSubview(refreshStatusButton)
         view.addSubview(permissionInfoLabel)
 
         // Layout constraints
@@ -194,6 +218,10 @@ final class PreferencesViewController: NSViewController {
             // Open Settings Button
             openSettingsButton.leadingAnchor.constraint(equalTo: permissionStatusLabel.leadingAnchor),
             openSettingsButton.topAnchor.constraint(equalTo: permissionStatusLabel.bottomAnchor, constant: 8),
+
+            // Refresh Status Button (next to Open Settings)
+            refreshStatusButton.leadingAnchor.constraint(equalTo: openSettingsButton.trailingAnchor, constant: 8),
+            refreshStatusButton.centerYAnchor.constraint(equalTo: openSettingsButton.centerYAnchor),
 
             // Permission Info Label
             permissionInfoLabel.leadingAnchor.constraint(equalTo: openSettingsButton.leadingAnchor),
@@ -396,6 +424,10 @@ final class PreferencesViewController: NSViewController {
         alert.alertStyle = .informational
         alert.addButton(withTitle: "OK")
         alert.runModal()
+    }
+
+    @objc private func refreshPermissionStatus() {
+        updatePermissionStatus()
     }
 }
 
