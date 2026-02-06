@@ -4,6 +4,22 @@ struct AppState: Codable, Equatable {
     var schemaVersion: Int
     var workspaces: [Workspace]
     var selectedWorkspaceId: UUID?
+    var isSettingsSelected: Bool
+
+    init(schemaVersion: Int, workspaces: [Workspace], selectedWorkspaceId: UUID?, isSettingsSelected: Bool) {
+        self.schemaVersion = schemaVersion
+        self.workspaces = workspaces
+        self.selectedWorkspaceId = selectedWorkspaceId
+        self.isSettingsSelected = isSettingsSelected
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try container.decode(Int.self, forKey: .schemaVersion)
+        workspaces = try container.decode([Workspace].self, forKey: .workspaces)
+        selectedWorkspaceId = try container.decodeIfPresent(UUID.self, forKey: .selectedWorkspaceId)
+        isSettingsSelected = try container.decodeIfPresent(Bool.self, forKey: .isSettingsSelected) ?? false
+    }
 }
 
 struct Workspace: Codable, Identifiable, Equatable {
