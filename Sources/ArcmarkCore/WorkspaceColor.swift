@@ -1,6 +1,6 @@
 import AppKit
 
-enum WorkspaceColorId: String, Codable, CaseIterable {
+enum WorkspaceColorId: String, Codable {
     case ember
     case ruby
     case coral
@@ -9,6 +9,7 @@ enum WorkspaceColorId: String, Codable, CaseIterable {
     case ocean
     case indigo
     case graphite
+    case settingsBackground
 
     var name: String {
         switch self {
@@ -20,6 +21,7 @@ enum WorkspaceColorId: String, Codable, CaseIterable {
         case .ocean: return "Sky"
         case .indigo: return "Periwinkle"
         case .graphite: return "Lavender"
+        case .settingsBackground: return "Settings"
         }
     }
 
@@ -33,11 +35,15 @@ enum WorkspaceColorId: String, Codable, CaseIterable {
         case .ocean: return NSColor(calibratedRed: 0.325, green: 0.918, blue: 0.992, alpha: 1.0) // #53EAFD
         case .indigo: return NSColor(calibratedRed: 0.639, green: 0.702, blue: 1.00, alpha: 1.0) // #A3B3FF
         case .graphite: return NSColor(calibratedRed: 0.855, green: 0.698, blue: 1.00, alpha: 1.0) // #DAB2FF
+        case .settingsBackground: return NSColor(calibratedRed: 0.898, green: 0.906, blue: 0.922, alpha: 1.0) // #E5E7EB
         }
     }
 
     var backgroundColor: NSColor {
-        color.withAlphaComponent(0.92)
+        if self == .settingsBackground {
+            return color
+        }
+        return color.withAlphaComponent(0.92)
     }
 
     var textColor: NSColor {
@@ -46,6 +52,10 @@ enum WorkspaceColorId: String, Codable, CaseIterable {
 }
 
 extension WorkspaceColorId {
+    static var allCases: [WorkspaceColorId] {
+        [.ember, .ruby, .coral, .tangerine, .moss, .ocean, .indigo, .graphite]
+    }
+
     static func defaultColor() -> WorkspaceColorId { .ember }
 
     static func randomColor() -> WorkspaceColorId {

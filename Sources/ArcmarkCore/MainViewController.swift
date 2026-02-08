@@ -2,7 +2,7 @@ import AppKit
 
 @MainActor
 final class MainViewController: NSViewController {
-    private let model: AppModel
+    let model: AppModel
 
     private let workspaceSwitcher = WorkspaceSwitcherView(style: .defaultStyle)
     private let searchField = SearchBarView(style: .defaultSearch)
@@ -16,6 +16,7 @@ final class MainViewController: NSViewController {
     private let contextMenu = NSMenu()
     private let listMetrics = ListMetrics()
     private let dropIndicator = DropIndicatorView()
+    private let settingsViewController = SettingsContentViewController()
 
     private var filteredItems: [Node] = []
     private var visibleRows: [NodeListRow] = []
@@ -73,6 +74,9 @@ final class MainViewController: NSViewController {
         }
         workspaceSwitcher.onWorkspaceRename = { [weak self] workspaceId, newName in
             self?.model.renameWorkspace(id: workspaceId, newName: newName)
+        }
+        workspaceSwitcher.onSettingsSelected = { [weak self] in
+            self?.model.selectSettings()
         }
 
         searchField.translatesAutoresizingMaskIntoConstraints = false
@@ -136,7 +140,13 @@ final class MainViewController: NSViewController {
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.alignment = .centerX
 
+        // Setup settings view (initially hidden)
+        addChild(settingsViewController)
+        settingsViewController.view.translatesAutoresizingMaskIntoConstraints = false
+        settingsViewController.view.isHidden = true
+
         view.addSubview(stack)
+        view.addSubview(settingsViewController.view)
 
         NSLayoutConstraint.activate([
             workspaceSwitcher.leadingAnchor.constraint(equalTo: topBar.leadingAnchor),
@@ -165,6 +175,14 @@ final class MainViewController: NSViewController {
             searchField.leadingAnchor.constraint(equalTo: stack.leadingAnchor, constant: 2),
             searchField.trailingAnchor.constraint(equalTo: stack.trailingAnchor, constant: -2)
         ])
+
+        // Settings view constraints (positioned to replace workspace content area)
+        NSLayoutConstraint.activate([
+            settingsViewController.view.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
+            settingsViewController.view.trailingAnchor.constraint(equalTo: stack.trailingAnchor),
+            settingsViewController.view.topAnchor.constraint(equalTo: topBar.bottomAnchor, constant: 10),
+            settingsViewController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -LayoutConstants.windowPadding)
+        ])
     }
 
     private func makeCollectionLayout() -> NSCollectionViewLayout {
@@ -189,18 +207,24 @@ final class MainViewController: NSViewController {
             clearInlineRenameState()
         }
         reloadWorkspaceMenu()
-        applyWorkspaceStyling()
-        applyFilter()
-        let forceExpand = !currentQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        let newRows = buildVisibleRows(nodes: filteredItems, depth: 0, forceExpand: forceExpand)
-        applyVisibleRows(newRows)
-        handlePendingInlineRename()
+
+        // Check if settings is selected
+        if model.state.isSettingsSelected {
+            showSettingsContent()
+        } else {
+            showWorkspaceContent()
+            applyWorkspaceStyling()
+            applyFilter()
+            let forceExpand = !currentQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            let newRows = buildVisibleRows(nodes: filteredItems, depth: 0, forceExpand: forceExpand)
+            applyVisibleRows(newRows)
+            handlePendingInlineRename()
+        }
         hasLoaded = true
     }
 
     private func reloadWorkspaceMenu() {
         let workspaces = model.workspaces
-        let selectedId = model.currentWorkspace.id
 
         workspaceSwitcher.workspaces = workspaces.map { workspace in
             WorkspaceSwitcherView.WorkspaceItem(
@@ -209,14 +233,50 @@ final class MainViewController: NSViewController {
                 colorId: workspace.colorId
             )
         }
-        workspaceSwitcher.selectedWorkspaceId = selectedId
-        workspaceSwitcher.workspaceColor = model.currentWorkspace.colorId
+
+        workspaceSwitcher.isSettingsSelected = model.state.isSettingsSelected
+
+        if model.state.isSettingsSelected {
+            workspaceSwitcher.selectedWorkspaceId = nil
+            // Use settings background color for overscroll shadow
+            workspaceSwitcher.workspaceColor = .settingsBackground
+        } else {
+            let selectedId = model.currentWorkspace.id
+            workspaceSwitcher.selectedWorkspaceId = selectedId
+            workspaceSwitcher.workspaceColor = model.currentWorkspace.colorId
+        }
+
         handlePendingWorkspaceRename()
     }
 
     private func applyWorkspaceStyling() {
         view.layer?.backgroundColor = model.currentWorkspace.colorId.backgroundColor.cgColor
         view.window?.backgroundColor = model.currentWorkspace.colorId.backgroundColor
+    }
+
+    private func showSettingsContent() {
+        // Hide workspace content
+        searchField.isHidden = true
+        pasteButton.isHidden = true
+        scrollView.isHidden = true
+
+        // Show settings content
+        settingsViewController.view.isHidden = false
+
+        // Apply settings background color
+        let settingsColor = NSColor(calibratedRed: 0.898, green: 0.906, blue: 0.922, alpha: 1.0) // #E5E7EB
+        view.layer?.backgroundColor = settingsColor.cgColor
+        view.window?.backgroundColor = settingsColor
+    }
+
+    private func showWorkspaceContent() {
+        // Show workspace content
+        searchField.isHidden = false
+        pasteButton.isHidden = false
+        scrollView.isHidden = false
+
+        // Hide settings content
+        settingsViewController.view.isHidden = true
     }
 
     private func applyFilter() {

@@ -177,11 +177,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     }
 
     @objc private func openPreferences() {
-        if preferencesWindowController == nil {
-            preferencesWindowController = PreferencesWindowController()
-        }
-        preferencesWindowController?.showWindow(nil)
-        preferencesWindowController?.window?.makeKeyAndOrderFront(nil)
+        // Select the settings tab in the main window instead of opening a separate preferences window
+        guard let mainVC = mainViewController else { return }
+        mainVC.model.selectSettings()
+        showMainWindow()
     }
 
     @objc private func newWorkspace() {
