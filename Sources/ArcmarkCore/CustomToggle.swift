@@ -24,6 +24,14 @@ final class CustomToggle: NSControl {
         }
     }
 
+    override var isEnabled: Bool {
+        didSet {
+            if oldValue != isEnabled {
+                updateAppearance(animated: true)
+            }
+        }
+    }
+
     var titleText: String {
         get { titleLabel.stringValue }
         set {
@@ -167,6 +175,9 @@ final class CustomToggle: NSControl {
         // Position thumb
         let thumbLeadingOffset = isOn ? (switchWidth - thumbSize - thumbInset) : thumbInset
 
+        // Opacity for disabled state
+        let controlOpacity: CGFloat = isEnabled ? 1.0 : 0.5
+
         if animated {
             NSAnimationContext.runAnimationGroup { context in
                 context.duration = 0.2
@@ -174,6 +185,8 @@ final class CustomToggle: NSControl {
 
                 switchContainer.layer?.backgroundColor = backgroundColor.cgColor
                 switchThumb.layer?.backgroundColor = thumbColor.cgColor
+                switchContainer.alphaValue = controlOpacity
+                titleLabel.alphaValue = controlOpacity
 
                 thumbLeadingConstraint?.constant = thumbLeadingOffset
                 switchContainer.layoutSubtreeIfNeeded()
@@ -181,12 +194,10 @@ final class CustomToggle: NSControl {
         } else {
             switchContainer.layer?.backgroundColor = backgroundColor.cgColor
             switchThumb.layer?.backgroundColor = thumbColor.cgColor
+            switchContainer.alphaValue = controlOpacity
+            titleLabel.alphaValue = controlOpacity
             thumbLeadingConstraint?.constant = thumbLeadingOffset
         }
-
-        // Update label opacity
-        let labelOpacity: CGFloat = isEnabled ? 1.0 : 0.5
-        titleLabel.alphaValue = labelOpacity
 
         // Update accessibility
         setAccessibilityValue(isOn ? "on" : "off")
