@@ -1197,8 +1197,10 @@ extension MainViewController: NSMenuDelegate {
         guard !nodeIds.isEmpty else { return }
 
         let folderId = model.groupNodesInNewFolder(nodeIds: nodeIds, folderName: "Untitled")
-        clearSelections()
-
+        // Clear selections after the UI has been updated
+        DispatchQueue.main.async { [weak self] in
+            self?.clearSelections()
+        }
         if let folderId = folderId {
             scheduleInlineRename(for: folderId)
         }
