@@ -154,11 +154,7 @@ final class SettingsContentViewController: NSViewController {
     }
 
     private func setupWorkspaceCollectionView() {
-        let layout = NSCollectionViewFlowLayout()
-        layout.scrollDirection = .vertical
-        layout.minimumLineSpacing = 4
-        layout.sectionInset = NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
-
+        let layout = ListFlowLayout(metrics: ListMetrics())
         workspaceCollectionView.collectionViewLayout = layout
         workspaceCollectionView.translatesAutoresizingMaskIntoConstraints = false
         workspaceCollectionView.dataSource = self
@@ -167,15 +163,6 @@ final class SettingsContentViewController: NSViewController {
         workspaceCollectionView.allowsMultipleSelection = false
         workspaceCollectionView.backgroundColors = [.clear]
         workspaceCollectionView.settingsController = self
-
-        // Observe frame changes to invalidate layout when collection view is resized
-        workspaceCollectionView.postsFrameChangedNotifications = true
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(workspaceCollectionViewFrameDidChange),
-            name: NSView.frameDidChangeNotification,
-            object: workspaceCollectionView
-        )
 
         // Set up context menu handler
         workspaceCollectionView.onRightClick = { [weak self] workspaceId, event in
@@ -879,11 +866,6 @@ final class SettingsContentViewController: NSViewController {
             (item as? WorkspaceCollectionViewItem)?.refreshHoverState()
         }
     }
-
-    @objc private func workspaceCollectionViewFrameDidChange() {
-        // Invalidate layout to trigger recalculation of item sizes
-        workspaceCollectionView.collectionViewLayout?.invalidateLayout()
-    }
 }
 
 // MARK: - NSCollectionViewDataSource
@@ -921,26 +903,10 @@ extension SettingsContentViewController: NSCollectionViewDataSource {
     }
 }
 
-// MARK: - NSCollectionViewDelegateFlowLayout
-
-extension SettingsContentViewController: NSCollectionViewDelegateFlowLayout {
-    func collectionView(_ collectionView: NSCollectionView, layout collectionViewLayout: NSCollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> NSSize {
-        let metrics = ListMetrics()
-        // Use bounds.width for dynamic sizing based on actual view dimensions
-        // If bounds width is zero (during initial setup), use the enclosing scroll view's width
-        var width = collectionView.bounds.width
-        if width <= 1 {
-            width = scrollView.bounds.width
-        }
-        // Ensure minimum width and subtract small amount to prevent layout warnings
-        width = max(100, width - 1)
-        return NSSize(width: width, height: metrics.rowHeight)
-    }
-}
 
 // MARK: - NSCollectionViewDelegate
 
-extension SettingsContentViewController: NSCollectionViewDelegate {
+extension SettingsContentViewController: NSCollectionViewDelegate, NSCollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: NSCollectionView, canDragItemsAt indexPaths: Set<IndexPath>, with event: NSEvent) -> Bool {
         return true
     }
