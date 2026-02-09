@@ -379,7 +379,7 @@ final class ArcImportService: Sendable {
                     id: UUID(),
                     name: item.title ?? "Untitled Folder",
                     children: childNodes,
-                    isExpanded: true
+                    isExpanded: false
                 )
                 nodes.append(.folder(folder))
             }

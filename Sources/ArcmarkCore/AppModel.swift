@@ -119,8 +119,8 @@ final class AppModel {
     }
 
     @discardableResult
-    func addFolder(name: String, parentId: UUID?) -> UUID {
-        let folder = Folder(id: UUID(), name: name, children: [], isExpanded: true)
+    func addFolder(name: String, parentId: UUID?, isExpanded: Bool = true) -> UUID {
+        let folder = Folder(id: UUID(), name: name, children: [], isExpanded: isExpanded)
         let node = Node.folder(folder)
         insertNode(node, parentId: parentId)
         return folder.id
