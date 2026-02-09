@@ -50,6 +50,11 @@ final class SettingsContentViewController: NSViewController {
         }
     }
 
+    // Called by MainViewController when workspaces change
+    func notifyWorkspacesChanged() {
+        reloadWorkspaces()
+    }
+
     // Scroll view
     private let scrollView = NSScrollView()
     private let contentView = FlippedContentView()
@@ -704,6 +709,9 @@ final class SettingsContentViewController: NSViewController {
         if let previousWorkspaceId = previousWorkspaceId {
             appModel.selectWorkspace(id: previousWorkspaceId)
         }
+
+        // Reload the workspace list to reflect the newly imported workspaces
+        reloadWorkspaces()
     }
 
     private func addNodeToWorkspace(_ node: Node, parentId: UUID?, appModel: AppModel) {
