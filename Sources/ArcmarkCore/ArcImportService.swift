@@ -165,14 +165,14 @@ struct ArcTabData: Codable {
 // MARK: - Import Result Models
 
 /// Represents a workspace to be imported
-struct ImportWorkspace {
+struct ImportWorkspace: Sendable {
     let name: String
     let colorId: WorkspaceColorId
     let nodes: [Node]
 }
 
 /// Result of an Arc import operation
-struct ArcImportResult {
+struct ArcImportResult: Sendable {
     let workspaces: [ImportWorkspace]
     let workspacesCreated: Int
     let linksImported: Int
@@ -204,8 +204,7 @@ extension ArcImportError: LocalizedError {
 
 // MARK: - Arc Import Service
 
-@MainActor
-final class ArcImportService {
+final class ArcImportService: Sendable {
     static let shared = ArcImportService()
 
     private init() {}
@@ -216,44 +215,50 @@ final class ArcImportService {
     /// - Parameter fileURL: URL to the Arc StorableSidebar.json file
     /// - Returns: Result containing import statistics or error
     func importFromArc(fileURL: URL) async -> Result<ArcImportResult, ArcImportError> {
-        do {
-            // Read file data
-            guard FileManager.default.fileExists(atPath: fileURL.path) else {
-                return .failure(.fileNotFound)
+        // Yield to allow UI to update (show loading spinner)
+        await Task.yield()
+
+        // Perform the heavy work on a background task to avoid blocking the main thread
+        return await Task.detached {
+            do {
+                // Read file data
+                guard FileManager.default.fileExists(atPath: fileURL.path) else {
+                    return .failure(.fileNotFound)
+                }
+
+                let data = try Data(contentsOf: fileURL)
+
+                // Parse Arc data - this is CPU intensive
+                let arcData = try self.parseArcData(data)
+
+                // Convert to Arcmark workspaces - also CPU intensive
+                let workspaces = try self.convertToWorkspaces(arcData)
+
+                // Calculate statistics
+                var totalLinks = 0
+                var totalFolders = 0
+
+                for workspace in workspaces {
+                    let stats = self.countNodes(workspace.nodes)
+                    totalLinks += stats.links
+                    totalFolders += stats.folders
+                }
+
+                let result = ArcImportResult(
+                    workspaces: workspaces,
+                    workspacesCreated: workspaces.count,
+                    linksImported: totalLinks,
+                    foldersImported: totalFolders
+                )
+
+                return .success(result)
+
+            } catch let error as ArcImportError {
+                return .failure(error)
+            } catch {
+                return .failure(.parsingFailed(error.localizedDescription))
             }
-
-            let data = try Data(contentsOf: fileURL)
-
-            // Parse Arc data
-            let arcData = try parseArcData(data)
-
-            // Convert to Arcmark workspaces
-            let workspaces = try convertToWorkspaces(arcData)
-
-            // Calculate statistics
-            var totalLinks = 0
-            var totalFolders = 0
-
-            for workspace in workspaces {
-                let stats = countNodes(workspace.nodes)
-                totalLinks += stats.links
-                totalFolders += stats.folders
-            }
-
-            let result = ArcImportResult(
-                workspaces: workspaces,
-                workspacesCreated: workspaces.count,
-                linksImported: totalLinks,
-                foldersImported: totalFolders
-            )
-
-            return .success(result)
-
-        } catch let error as ArcImportError {
-            return .failure(error)
-        } catch {
-            return .failure(.parsingFailed(error.localizedDescription))
-        }
+        }.value
     }
 
     // MARK: - Private Methods
