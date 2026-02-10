@@ -8,13 +8,13 @@ final class InlineEditableTextFieldTests: XCTestCase {
 
     nonisolated override func setUp() {
         super.setUp()
-        MainActor.assumeIsolated {
+        MainActor.assumeIsolated { [unowned self] in
             editableTextField = InlineEditableTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 30))
         }
     }
 
     nonisolated override func tearDown() {
-        MainActor.assumeIsolated {
+        MainActor.assumeIsolated { [unowned self] in
             editableTextField = nil
         }
         super.tearDown()
