@@ -3,8 +3,12 @@ format_version = 2
 [apps.Arcmark]
 identifier = 'com.arcmark.app'
 product = 'Arcmark'
-version = '1.0.0'
+version = '0.1.0'
+description = 'A workspace-based bookmark manager for macOS'
+license = 'MIT'
 category = 'public.app-category.productivity'
 
 [apps.Arcmark.plist]
 CFBundleIdentifier = 'com.arcmark.app'
+CFBundleShortVersionString = '$(VERSION)'
+CFBundleVersion = '$(VERSION)'
