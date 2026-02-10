@@ -15,6 +15,12 @@ Arcmark is a macOS bookmark management application built with Swift and AppKit. 
 # Build the app bundle (creates .build/bundler/Arcmark.app)
 ./scripts/build.sh
 
+# Build the app and create DMG installer
+./scripts/build.sh --dmg
+
+# Create DMG from existing build
+./scripts/create-dmg.sh
+
 # Build and run the app
 ./scripts/run.sh
 
@@ -29,12 +35,26 @@ swift build -c release
 ```
 
 **Build System:** The app uses Swift Bundler to create macOS app bundles. The build script automatically:
+- Reads version from `VERSION` file and syncs to Bundler.toml
 - Builds the app with Swift Bundler
 - Patches Info.plist to ensure CFBundleIdentifier is present
 - Code signs the app with an ad-hoc signature
 - Verifies the build
+- Optionally creates a DMG installer with `--dmg` flag
 
 See [docs/BUILD_AND_CODESIGN.md](docs/BUILD_AND_CODESIGN.md) for detailed information about the build process, code signing, and verification.
+
+### Version Management
+
+The app version is managed through a centralized `VERSION` file in the project root. To update the version:
+
+```bash
+echo "0.2.0" > VERSION
+```
+
+The build script automatically reads this file and updates `Bundler.toml` and Info.plist accordingly. The version follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`.
+
+For complete distribution workflow including DMG creation and beta testing, see [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
 
 ## Architecture
 
