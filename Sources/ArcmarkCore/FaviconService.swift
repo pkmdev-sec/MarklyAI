@@ -10,7 +10,9 @@ final class FaviconService {
     private let logger = Logger(subsystem: "com.arcmark.app", category: "favicon")
     private let failureCooldown: TimeInterval = 300
     private var cache: [String: NSImage] = [:]
+    private var cachedPaths: [String: String] = [:]
     private var inFlight: Set<String> = []
+    private var pendingCallbacks: [String: [(NSImage?, String?) -> Void]] = [:]
     private var failureTimestamps: [String: Date] = [:]
 
     private init() {
@@ -39,7 +41,8 @@ final class FaviconService {
         }
 
         if let image = cache[key] {
-            completeAsync(completion, image: image, path: cachedPath)
+            let path = cachedPaths[key]
+            completeAsync(completion, image: image, path: path)
             return
         }
 
@@ -50,6 +53,7 @@ final class FaviconService {
         if let cachedPath, FileManager.default.fileExists(atPath: cachedPath),
            let image = NSImage(contentsOfFile: cachedPath) {
             cache[key] = image
+            cachedPaths[key] = cachedPath
             completeAsync(completion, image: image, path: cachedPath)
             return
         }
@@ -57,12 +61,14 @@ final class FaviconService {
         if FileManager.default.fileExists(atPath: fileURL.path),
            let image = NSImage(contentsOf: fileURL) {
             cache[key] = image
+            cachedPaths[key] = fileURL.path
             completeAsync(completion, image: image, path: fileURL.path)
             return
         }
 
         if inFlight.contains(key) {
-            completeAsync(completion, image: nil, path: nil)
+            logger.debug("Queueing callback for in-flight request: \(key, privacy: .public)")
+            pendingCallbacks[key, default: []].append(completion)
             return
         }
         inFlight.insert(key)
@@ -74,12 +80,20 @@ final class FaviconService {
             let fallbackURL = URL(string: "https://www.google.com/s2/favicons?sz=64&domain_url=\(scheme)://\(host)")
 
             let data = await fetchFaviconData(primary: primaryURL, fallback: fallbackURL)
-            defer { inFlight.remove(key) }
+            defer {
+                inFlight.remove(key)
+                pendingCallbacks.removeValue(forKey: key)
+            }
 
             guard let data, let image = NSImage(data: data) else {
                 failureTimestamps[key] = Date()
                 logger.debug("Favicon fetch failed for \(key, privacy: .public)")
                 completeAsync(completion, image: nil, path: nil)
+                // Notify all pending callbacks of the failure
+                let callbacks = pendingCallbacks[key] ?? []
+                for callback in callbacks {
+                    completeAsync(callback, image: nil, path: nil)
+                }
                 return
             }
 
@@ -90,8 +104,16 @@ final class FaviconService {
             }
 
             cache[key] = image
+            cachedPaths[key] = fileURL.path
             logger.debug("Favicon fetch succeeded for \(key, privacy: .public)")
             completeAsync(completion, image: image, path: fileURL.path)
+
+            // Notify all pending callbacks of the success
+            let callbacks = pendingCallbacks[key] ?? []
+            logger.debug("Notifying \(callbacks.count, privacy: .public) pending callbacks for \(key, privacy: .public)")
+            for callback in callbacks {
+                completeAsync(callback, image: image, path: fileURL.path)
+            }
         }
     }
 
