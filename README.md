@@ -13,7 +13,7 @@ Inspired fully by how the tabs organization works in Arc browser's sidebar, so t
 
 ## Demo
 
-!TODO: Add demo video
+https://github.com/user-attachments/assets/acc90f08-66c8-42de-9453-8699c2c2f47a
 
 ## Why Arcmark?
 
@@ -44,7 +44,7 @@ Inspired fully by how the tabs organization works in Arc browser's sidebar, so t
 
 ## Download
 
-**Latest Release**: [Download Arcmark v0.1.0](../../releases/latest)
+**Latest Release**: [Download Arcmark v0.1.0](#)
 
 ### System Requirements
 - macOS 13.0 or later
@@ -52,7 +52,7 @@ Inspired fully by how the tabs organization works in Arc browser's sidebar, so t
 
 ## Installation
 
-1. Download the latest `.dmg` file from the [Releases](../../releases) page
+1. Download the latest `.dmg` file from the [Releases](#) page
 2. Open the downloaded DMG file
 3. Drag **Arcmark.app** to your **Applications** folder
 
