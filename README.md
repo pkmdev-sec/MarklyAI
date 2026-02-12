@@ -5,7 +5,7 @@
 # Arcmark
 
 <p align="center">
-  <img src="resources/screenshots/screenshot-1-app.png" alt="Arcmark main window" width="100%">
+  <img src="./Resources/screenshots/screenshot-1-app.png" alt="Arcmark main window" width="100%">
 </p>
 
 Arcmark is a native macOS bookmark manager built with Swift and AppKit that attaches to any browser window as a sidebar. 
@@ -39,7 +39,7 @@ Inspired fully by how the tabs organization works in Arc browser's sidebar, so t
 - **Search & Filter** - Quickly find bookmarks in any workspace
 
 <p align="center">
-  <img src="resources/screenshots/screenshot-2-settings.png" alt="Arcmark settings" width="100%">
+  <img src="./Resources/screenshots/screenshot-2-settings.png" alt="Arcmark settings" width="100%">
 </p>
 
 ## Download
