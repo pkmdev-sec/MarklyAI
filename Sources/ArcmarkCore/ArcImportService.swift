@@ -98,7 +98,7 @@ enum ArcSpaceOrString: Codable {
 /// Represents an Arc space (workspace)
 struct ArcSpace: Codable {
     let id: String
-    let title: String
+    let title: String?
     let containerIDs: [String]
 
     // Helper to get pinned container ID
@@ -157,8 +157,8 @@ struct ArcItemData: Codable {
 
 /// Tab information including URL and title
 struct ArcTabData: Codable {
-    let savedTitle: String
-    let savedURL: String
+    let savedTitle: String?
+    let savedURL: String?
     let timeLastActiveAt: Double?
 }
 
@@ -328,10 +328,11 @@ final class ArcImportService: Sendable {
             }
 
             // Handle duplicate workspace names
-            var workspaceName = space.title
+            let baseTitle = space.title ?? "Untitled"
+            var workspaceName = baseTitle
             if let count = usedNames[workspaceName] {
-                workspaceName = "\(space.title) \(count + 1)"
-                usedNames[space.title] = count + 1
+                workspaceName = "\(baseTitle) \(count + 1)"
+                usedNames[baseTitle] = count + 1
             } else {
                 usedNames[workspaceName] = 1
             }
@@ -385,16 +386,25 @@ final class ArcImportService: Sendable {
             }
             // Check if it's a link
             else if let tabData = item.data?.tab {
-                // Validate URL
-                guard !tabData.savedURL.isEmpty,
-                      URL(string: tabData.savedURL) != nil else {
+                // Validate URL - skip if nil or invalid
+                guard let urlString = tabData.savedURL,
+                      !urlString.isEmpty,
+                      URL(string: urlString) != nil else {
                     continue
+                }
+
+                // Use savedTitle if available, otherwise use "Untitled"
+                let linkTitle: String
+                if let savedTitle = tabData.savedTitle, !savedTitle.isEmpty {
+                    linkTitle = savedTitle
+                } else {
+                    linkTitle = "Untitled"
                 }
 
                 let link = Link(
                     id: UUID(),
-                    title: tabData.savedTitle.isEmpty ? tabData.savedURL : tabData.savedTitle,
-                    url: tabData.savedURL,
+                    title: linkTitle,
+                    url: urlString,
                     faviconPath: nil
                 )
                 nodes.append(.link(link))
