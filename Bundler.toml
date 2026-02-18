@@ -13,3 +13,5 @@ icon = 'Resources/AppIcon.png'
 CFBundleIdentifier = 'com.arcmark.app'
 CFBundleShortVersionString = '$(VERSION)'
 CFBundleVersion = '$(VERSION)'
+SUFeedURL = 'https://raw.githubusercontent.com/pkmdev-sec/MarklyAI/main/docs/appcast.xml'
+SUPublicEDKey = '' # gitleaks:allow -- Sparkle public verification key

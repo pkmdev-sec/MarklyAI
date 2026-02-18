@@ -4,6 +4,7 @@
 //
 
 import AppKit
+@preconcurrency import Sparkle
 
 final class SettingsContentViewController: NSViewController {
     // Layout constants
@@ -46,6 +47,11 @@ final class SettingsContentViewController: NSViewController {
     private let importButton = SettingsButton(title: "Import from Arc Browser")
     private let importStatusLabel = NSTextField(labelWithString: "")
 
+    // App Version section
+    private let versionLabel = NSTextField(labelWithString: "")
+    private let checkForUpdatesButton = SettingsButton(title: "Check for Updates")
+    var updater: SPUUpdater?
+
     // Reference to AppModel (will be set from MainViewController)
     weak var appModel: AppModel? {
         didSet {
@@ -65,6 +71,10 @@ final class SettingsContentViewController: NSViewController {
     // Dynamic constraints
     private var separator1ToSelectorConstraint: NSLayoutConstraint?
     private var separator1ToToggleConstraint: NSLayoutConstraint?
+    private var separator4ToOpenSettingsConstraint: NSLayoutConstraint?
+    private var separator4ToRefreshButtonConstraint: NSLayoutConstraint?
+    private var separator5ToImportButtonConstraint: NSLayoutConstraint?
+    private var separator5ToImportStatusConstraint: NSLayoutConstraint?
 
     override func loadView() {
         let view = NSView()
@@ -277,6 +287,17 @@ final class SettingsContentViewController: NSViewController {
         importStatusLabel.isHidden = true
         importStatusLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
+        // App Version Section
+        let versionString = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown"
+        versionLabel.stringValue = "Version \(versionString)"
+        versionLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        versionLabel.textColor = regularTextColor
+        versionLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        checkForUpdatesButton.target = self
+        checkForUpdatesButton.action = #selector(checkForUpdates)
+        checkForUpdatesButton.translatesAutoresizingMaskIntoConstraints = false
+
         // Add all subviews to contentView
         contentView.addSubview(windowSettingsHeader)
         contentView.addSubview(alwaysOnTopToggle)
@@ -301,6 +322,13 @@ final class SettingsContentViewController: NSViewController {
         contentView.addSubview(importHeader)
         contentView.addSubview(importButton)
         contentView.addSubview(importStatusLabel)
+
+        let separator5 = createSeparator()
+        let versionHeader = createSectionHeader("App Version")
+        contentView.addSubview(separator5)
+        contentView.addSubview(versionHeader)
+        contentView.addSubview(versionLabel)
+        contentView.addSubview(checkForUpdatesButton)
 
         // Layout constraints
         NSLayoutConstraint.activate([
@@ -407,7 +435,6 @@ final class SettingsContentViewController: NSViewController {
             // Separator 4
             separator4.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding),
             separator4.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
-            separator4.topAnchor.constraint(equalTo: refreshStatusButton.bottomAnchor, constant: sectionSpacing),
             separator4.heightAnchor.constraint(equalToConstant: 1),
 
             // Import & Export Header
@@ -425,8 +452,27 @@ final class SettingsContentViewController: NSViewController {
             importStatusLabel.topAnchor.constraint(equalTo: importButton.bottomAnchor, constant: itemSpacing),
             importStatusLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
 
+            // Separator 5
+            separator5.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding),
+            separator5.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
+            separator5.heightAnchor.constraint(equalToConstant: 1),
+
+            // App Version Header
+            versionHeader.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding),
+            versionHeader.topAnchor.constraint(equalTo: separator5.bottomAnchor, constant: sectionSpacing),
+
+            // Version Label
+            versionLabel.leadingAnchor.constraint(equalTo: versionHeader.leadingAnchor),
+            versionLabel.topAnchor.constraint(equalTo: versionHeader.bottomAnchor, constant: sectionHeaderSpacing),
+
+            // Check for Updates Button
+            checkForUpdatesButton.leadingAnchor.constraint(equalTo: versionLabel.leadingAnchor),
+            checkForUpdatesButton.topAnchor.constraint(equalTo: versionLabel.bottomAnchor, constant: itemSpacing),
+            checkForUpdatesButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
+            checkForUpdatesButton.heightAnchor.constraint(equalToConstant: 36),
+
             // Bottom constraint to define content height - use greaterThanOrEqualTo to allow content to be anchored at top
-            contentView.bottomAnchor.constraint(greaterThanOrEqualTo: importStatusLabel.bottomAnchor, constant: 24),
+            contentView.bottomAnchor.constraint(greaterThanOrEqualTo: checkForUpdatesButton.bottomAnchor, constant: 24),
         ])
 
         // Setup dynamic constraints for separator1
@@ -435,6 +481,20 @@ final class SettingsContentViewController: NSViewController {
 
         // Activate the appropriate constraint based on initial state
         separator1ToSelectorConstraint?.isActive = true
+
+        // Setup dynamic constraints for separator4 (permissions section)
+        // openSettingsButton is shown/hidden based on accessibility permission status
+        separator4ToOpenSettingsConstraint = separator4.topAnchor.constraint(equalTo: openSettingsButton.bottomAnchor, constant: sectionSpacing)
+        separator4ToRefreshButtonConstraint = separator4.topAnchor.constraint(equalTo: refreshStatusButton.bottomAnchor, constant: sectionSpacing)
+        // Default: openSettingsButton is visible
+        separator4ToOpenSettingsConstraint?.isActive = true
+
+        // Setup dynamic constraints for separator5 (import section)
+        // importStatusLabel is hidden by default, shown temporarily after import
+        separator5ToImportButtonConstraint = separator5.topAnchor.constraint(equalTo: importButton.bottomAnchor, constant: sectionSpacing)
+        separator5ToImportStatusConstraint = separator5.topAnchor.constraint(equalTo: importStatusLabel.bottomAnchor, constant: sectionSpacing)
+        // Default: importStatusLabel is hidden
+        separator5ToImportButtonConstraint?.isActive = true
 
         // Setup workspace collection view height constraint (will be updated dynamically)
         workspaceCollectionViewHeightConstraint = workspaceCollectionView.heightAnchor.constraint(equalToConstant: 0)
@@ -519,11 +579,17 @@ final class SettingsContentViewController: NSViewController {
             // Use a darker green for better readability
             permissionStatusLabel.textColor = NSColor(calibratedRed: 0.13, green: 0.67, blue: 0.29, alpha: 1.0)
             openSettingsButton.isHidden = true
+            // Anchor separator4 to refreshStatusButton when openSettingsButton is hidden
+            separator4ToOpenSettingsConstraint?.isActive = false
+            separator4ToRefreshButtonConstraint?.isActive = true
         } else {
             permissionStatusLabel.stringValue = "Accessibility Access: ✗ Not Granted"
             // Use a darker red for better readability
             permissionStatusLabel.textColor = NSColor(calibratedRed: 0.85, green: 0.23, blue: 0.23, alpha: 1.0)
             openSettingsButton.isHidden = false
+            // Anchor separator4 to openSettingsButton when it's visible
+            separator4ToRefreshButtonConstraint?.isActive = false
+            separator4ToOpenSettingsConstraint?.isActive = true
         }
     }
 
@@ -680,6 +746,10 @@ final class SettingsContentViewController: NSViewController {
         updatePermissionStatus()
     }
 
+    @objc private func checkForUpdates() {
+        updater?.checkForUpdates()
+    }
+
     @objc private func importFromArc() {
         // Construct default Arc path
         let arcPath = FileManager.default.homeDirectoryForCurrentUser
@@ -774,10 +844,16 @@ final class SettingsContentViewController: NSViewController {
         importStatusLabel.stringValue = message
         importStatusLabel.textColor = isError ? NSColor.systemRed : regularTextColor
         importStatusLabel.isHidden = false
+        // Anchor separator5 to importStatusLabel when it's visible
+        separator5ToImportButtonConstraint?.isActive = false
+        separator5ToImportStatusConstraint?.isActive = true
     }
 
     private func hideImportStatus() {
         importStatusLabel.isHidden = true
+        // Anchor separator5 to importButton when importStatusLabel is hidden
+        separator5ToImportStatusConstraint?.isActive = false
+        separator5ToImportButtonConstraint?.isActive = true
     }
 
     // MARK: - Workspace Management
