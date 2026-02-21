@@ -4,30 +4,30 @@
 import PackageDescription
 
 let package = Package(
-    name: "Arcmark",
+    name: "MarklyAI",
     platforms: [
         .macOS(.v13)
     ],
     products: [
         // Library for bundler to use
-        .library(name: "ArcmarkCore", targets: ["ArcmarkCore"]),
+        .library(name: "MarklyAICore", targets: ["MarklyAICore"]),
         // Executable for development/testing
-        .executable(name: "Arcmark", targets: ["ArcmarkApp"])
+        .executable(name: "MarklyAI", targets: ["MarklyAIApp"])
     ],
     dependencies: [
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.6.0")
     ],
     targets: [
         // Core library with all app logic
-        .target(name: "ArcmarkCore", dependencies: ["Sparkle"]),
+        .target(name: "MarklyAICore", dependencies: ["Sparkle"]),
         // Minimal executable entry point
         .executableTarget(
-            name: "ArcmarkApp",
-            dependencies: ["ArcmarkCore"]
+            name: "MarklyAIApp",
+            dependencies: ["MarklyAICore"]
         ),
         .testTarget(
-            name: "ArcmarkTests",
-            dependencies: ["ArcmarkCore"]
+            name: "MarklyAITests",
+            dependencies: ["MarklyAICore"]
         )
     ]
 )

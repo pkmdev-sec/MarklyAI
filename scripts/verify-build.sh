@@ -1,8 +1,8 @@
 #!/bin/bash
-# Quick verification script for Arcmark build
+# Quick verification script for MarklyAI build
 # Usage: ./scripts/verify-build.sh [path-to-app]
 
-APP_PATH="${1:-.build/bundler/Arcmark.app}"
+APP_PATH="${1:-.build/bundler/MarklyAI.app}"
 
 if [ ! -d "$APP_PATH" ]; then
     echo "❌ App not found at: $APP_PATH"
@@ -10,7 +10,7 @@ if [ ! -d "$APP_PATH" ]; then
     exit 1
 fi
 
-echo "🔍 Verifying Arcmark build at: $APP_PATH"
+echo "🔍 Verifying MarklyAI build at: $APP_PATH"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "📋 Info.plist Verification"
@@ -26,10 +26,10 @@ fi
 
 # Check CFBundleIdentifier
 BUNDLE_ID=$(defaults read "$(pwd)/$APP_PATH/Contents/Info.plist" CFBundleIdentifier 2>/dev/null)
-if [ "$BUNDLE_ID" = "com.arcmark.app" ]; then
+if [ "$BUNDLE_ID" = "com.marklyai.app" ]; then
     echo "✅ CFBundleIdentifier: $BUNDLE_ID"
 else
-    echo "❌ CFBundleIdentifier: ${BUNDLE_ID:-NOT FOUND} (expected: com.arcmark.app)"
+    echo "❌ CFBundleIdentifier: ${BUNDLE_ID:-NOT FOUND} (expected: com.marklyai.app)"
 fi
 
 # Check other critical keys
@@ -51,10 +51,10 @@ SIGNATURE_FORMAT=$(echo "$CODESIGN_OUTPUT" | grep "^Format=" | cut -d= -f2-)
 SIGNATURE_TYPE=$(echo "$CODESIGN_OUTPUT" | grep "^Signature=" | cut -d= -f2)
 INFO_PLIST_ENTRIES=$(echo "$CODESIGN_OUTPUT" | grep "^Info.plist entries=" | cut -d= -f2)
 
-if [ "$SIGNATURE_ID" = "com.arcmark.app" ]; then
+if [ "$SIGNATURE_ID" = "com.marklyai.app" ]; then
     echo "✅ Signature Identifier: $SIGNATURE_ID"
 else
-    echo "❌ Signature Identifier: $SIGNATURE_ID (expected: com.arcmark.app)"
+    echo "❌ Signature Identifier: $SIGNATURE_ID (expected: com.marklyai.app)"
 fi
 
 echo "   Format: $SIGNATURE_FORMAT"
@@ -77,9 +77,9 @@ echo "📦 Bundle Structure"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Check critical files
-if [ -f "$APP_PATH/Contents/MacOS/Arcmark" ]; then
-    echo "✅ Executable found: Contents/MacOS/Arcmark"
-    file "$APP_PATH/Contents/MacOS/Arcmark" | grep -q "Mach-O" && echo "   Architecture: $(file "$APP_PATH/Contents/MacOS/Arcmark" | grep -o 'arm64\|x86_64')"
+if [ -f "$APP_PATH/Contents/MacOS/MarklyAI" ]; then
+    echo "✅ Executable found: Contents/MacOS/MarklyAI"
+    file "$APP_PATH/Contents/MacOS/MarklyAI" | grep -q "Mach-O" && echo "   Architecture: $(file "$APP_PATH/Contents/MacOS/MarklyAI" | grep -o 'arm64\|x86_64')"
 else
     echo "❌ Executable not found"
 fi
@@ -101,7 +101,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "✨ Summary"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-if [ "$BUNDLE_ID" = "com.arcmark.app" ] && [ "$SIGNATURE_ID" = "com.arcmark.app" ]; then
+if [ "$BUNDLE_ID" = "com.marklyai.app" ] && [ "$SIGNATURE_ID" = "com.marklyai.app" ]; then
     echo "✅ Build verification PASSED"
     echo ""
     echo "Ready for installation:"

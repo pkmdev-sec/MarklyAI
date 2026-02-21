@@ -1,5 +1,5 @@
 #!/bin/bash
-# Clean build artifacts for Arcmark
+# Clean build artifacts for MarklyAI
 
 set -e  # Exit on error
 

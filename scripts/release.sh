@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build, sign, and publish a new Arcmark release
+# Build, sign, and publish a new MarklyAI release
 #
 # Usage:
 #   ./scripts/release.sh <version>        # Full release: build, tag, push, create GitHub release
@@ -37,7 +37,7 @@ fi
 # Ensure we're in the project root
 cd "$(dirname "$0")/.."
 
-echo "🚀 Releasing Arcmark v${NEW_VERSION}"
+echo "🚀 Releasing MarklyAI v${NEW_VERSION}"
 if [ "$DRY_RUN" = true ]; then
     echo "   (dry-run mode — git/GitHub operations will be skipped)"
 fi
@@ -89,7 +89,7 @@ echo "────────────────────────�
 echo ""
 
 # Verify DMG was created
-DMG_PATH=".build/dmg/Arcmark-${NEW_VERSION}.dmg"
+DMG_PATH=".build/dmg/MarklyAI-${NEW_VERSION}.dmg"
 if [ ! -f "$DMG_PATH" ]; then
     echo "❌ DMG not found at $DMG_PATH"
     exit 1
@@ -104,7 +104,7 @@ fi
 
 # Update landing page download link to point to the new version's DMG
 echo "🔗 Updating landing page download link..."
-sed -i '' "s|href=\"https://github.com/pkmdev-sec/MarklyAI/releases/download/v[^\"]*\"|href=\"https://github.com/pkmdev-sec/MarklyAI/releases/download/v${NEW_VERSION}/Arcmark-${NEW_VERSION}.dmg\"|" docs/index.html
+sed -i '' "s|href=\"https://github.com/pkmdev-sec/MarklyAI/releases/download/v[^\"]*\"|href=\"https://github.com/pkmdev-sec/MarklyAI/releases/download/v${NEW_VERSION}/MarklyAI-${NEW_VERSION}.dmg\"|" docs/index.html
 echo "  ✓ Download link updated in docs/index.html"
 echo ""
 
@@ -144,12 +144,12 @@ echo ""
 echo "🐙 Step 5: Creating GitHub Release..."
 gh release create "v${NEW_VERSION}" "$DMG_PATH" \
     --title "v${NEW_VERSION}" \
-    --notes "## Arcmark v${NEW_VERSION}"
+    --notes "## MarklyAI v${NEW_VERSION}"
 echo "  ✓ GitHub Release created"
 
 echo ""
 echo "════════════════════════════════════════"
-echo "✅ Arcmark v${NEW_VERSION} released!"
+echo "✅ MarklyAI v${NEW_VERSION} released!"
 echo ""
 echo "  📦 DMG: $DMG_PATH"
 echo "  🏷️  Tag: v${NEW_VERSION}"

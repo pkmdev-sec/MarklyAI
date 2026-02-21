@@ -1,15 +1,16 @@
 format_version = 2
 
-[apps.Arcmark]
-identifier = 'com.arcmark.app'
-product = 'Arcmark'
+[apps.MarklyAI]
+identifier = 'com.marklyai.app'
+product = 'MarklyAI'
 version = '0.1.4'
 description = 'A workspace-based bookmark manager for macOS'
 license = 'MIT'
 category = 'public.app-category.productivity'
 icon = 'Resources/AppIcon.png'
 
-[apps.Arcmark.plist]
-CFBundleIdentifier = 'com.arcmark.app'
+[apps.MarklyAI.plist]
+CFBundleIdentifier = 'com.marklyai.app'
+CFBundleName = 'MarklyAI'
 SUFeedURL = 'https://raw.githubusercontent.com/pkmdev-sec/MarklyAI/main/docs/appcast.xml'
 SUPublicEDKey = 'q6dyx5qi+I6jBIYOGjtrKxXWkBsoY6xW7cKsqiIQPto=' # gitleaks:allow -- Sparkle public verification key

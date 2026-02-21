@@ -6,7 +6,32 @@ DerivedData/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
-/*/Volumes/Arcmark/.background/background.png
+.ruff_cache/
 
 # Notarization credentials
 .notarization-config
+
+# Internal development docs (backed up locally)
+thoughts/
+openspec/
+
+# Claude Code config (dev-specific)
+.claude/
+
+# Icon generation scripts and comparison images
+Resources/enhance_icon*.py
+Resources/AppIcon-*-comparison.png
+Resources/AppIcon-enhanced.png
+Resources/AppIcon-enhanced-v2.png
+Resources/AppIcon-enhanced-v3.png
+Resources/AppIcon-premium.png
+Resources/AppIcon-premium.svg
+scripts/generate-icon.py
+scripts/generate-icon.swift
+
+# Large media files (upload via GitHub UI instead)
+docs/images/demo.mp4
+
+# Enhanced icon variants (only AppIcon.png and v4 are used)
+Resources/AppIcon-enhanced-v4.png
+Resources/AppIcon-enhanced-v4-comparison.png

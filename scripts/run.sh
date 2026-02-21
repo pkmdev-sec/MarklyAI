@@ -1,9 +1,9 @@
 #!/bin/bash
-# Build and run Arcmark as a proper macOS app bundle
+# Build and run MarklyAI as a proper macOS app bundle
 
 set -e  # Exit on error
 
-echo "🚀 Building and running Arcmark..."
+echo "🚀 Building and running MarklyAI..."
 
 # Ensure we're in the project root
 cd "$(dirname "$0")/.."
@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 mint run swift-bundler bundle
 
 # Post-build: Ensure Sparkle.framework is embedded
-FRAMEWORKS_DIR=".build/bundler/Arcmark.app/Contents/Frameworks"
+FRAMEWORKS_DIR=".build/bundler/MarklyAI.app/Contents/Frameworks"
 if [ ! -d "$FRAMEWORKS_DIR/Sparkle.framework" ]; then
     echo "🔧 Embedding Sparkle.framework..."
     mkdir -p "$FRAMEWORKS_DIR"
@@ -29,7 +29,7 @@ if [ ! -d "$FRAMEWORKS_DIR/Sparkle.framework" ]; then
 fi
 
 # Post-build: Patch Info.plist (Swift Bundler doesn't always merge plist values)
-INFO_PLIST=".build/bundler/Arcmark.app/Contents/Info.plist"
+INFO_PLIST=".build/bundler/MarklyAI.app/Contents/Info.plist"
 VERSION=$(cat VERSION | tr -d '[:space:]')
 
 # Patch version strings (required by Sparkle)
@@ -46,7 +46,7 @@ fi
 
 # Patch CFBundleIdentifier
 if ! /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$INFO_PLIST" &>/dev/null; then
-    /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string 'com.arcmark.app'" "$INFO_PLIST"
+    /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string 'com.marklyai.app'" "$INFO_PLIST"
 fi
 
 # Patch Sparkle keys (Swift Bundler doesn't reliably merge [apps.*.plist] values)
@@ -68,15 +68,15 @@ if [ -n "$PUBLIC_ED_KEY" ]; then
 fi
 
 # Add @executable_path/../Frameworks to rpath so dyld can find embedded frameworks
-EXECUTABLE=".build/bundler/Arcmark.app/Contents/MacOS/Arcmark"
+EXECUTABLE=".build/bundler/MarklyAI.app/Contents/MacOS/MarklyAI"
 if ! otool -l "$EXECUTABLE" | grep -A2 LC_RPATH | grep -q '@executable_path/../Frameworks'; then
     install_name_tool -add_rpath '@executable_path/../Frameworks' "$EXECUTABLE"
     echo "  ✓ Added Frameworks rpath"
 fi
 
 # Ad-hoc code sign for development
-codesign --force --deep --sign - ".build/bundler/Arcmark.app" 2>&1 | grep -v "replacing existing signature" || true
+codesign --force --deep --sign - ".build/bundler/MarklyAI.app" 2>&1 | grep -v "replacing existing signature" || true
 
 # Run the app
-echo "🚀 Launching Arcmark..."
-open ".build/bundler/Arcmark.app"
+echo "🚀 Launching MarklyAI..."
+open ".build/bundler/MarklyAI.app"

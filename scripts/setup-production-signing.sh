@@ -1,12 +1,12 @@
 #!/bin/bash
 # Interactive setup script for production code signing
 #
-# This script helps you configure production signing for Arcmark
+# This script helps you configure production signing for MarklyAI
 # See docs/PRODUCTION_SIGNING.md for detailed documentation
 
 set -e
 
-echo "🔐 Arcmark Production Signing Setup"
+echo "🔐 MarklyAI Production Signing Setup"
 echo "======================================"
 echo ""
 
@@ -106,7 +106,7 @@ echo ""
 echo "Creating .notarization-config..."
 
 cat > .notarization-config <<EOF
-# Notarization credentials for Arcmark
+# Notarization credentials for MarklyAI
 # This file is git-ignored - never commit it!
 
 # Your Apple ID email

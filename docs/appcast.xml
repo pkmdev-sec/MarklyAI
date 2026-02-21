@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
     <channel>
-        <title>Arcmark Updates</title>
-        <description>Arcmark update feed</description>
+        <title>MarklyAI Updates</title>
+        <description>MarklyAI update feed</description>
         <language>en</language>
         <link>https://github.com/pkmdev-sec/MarklyAI</link>
             <item>
                 <title>Version 0.1.4</title>
                 <pubDate>Thu, 19 Feb 2026 15:53:47 +0000</pubDate>
                 <enclosure
-                    url="https://github.com/pkmdev-sec/MarklyAI/releases/download/v0.1.4/Arcmark-0.1.4.dmg"
+                    url="https://github.com/pkmdev-sec/MarklyAI/releases/download/v0.1.4/MarklyAI-0.1.4.dmg"
                     sparkle:version="0.1.4"
                     sparkle:shortVersionString="0.1.4"
                     sparkle:edSignature="BRFwkURnYwN7hjOM+zD1/IqdevOlBPZkXHTptAJZHv65nauFuGs1VobGxv8xoXzuw40T62zrSSTnjNSwjslkDQ=="
@@ -21,7 +21,7 @@
                 <title>Version 0.1.3</title>
                 <pubDate>Wed, 18 Feb 2026 13:28:01 +0000</pubDate>
                 <enclosure
-                    url="https://github.com/pkmdev-sec/MarklyAI/releases/download/v0.1.3/Arcmark-0.1.3.dmg"
+                    url="https://github.com/pkmdev-sec/MarklyAI/releases/download/v0.1.3/MarklyAI-0.1.3.dmg"
                     sparkle:version="0.1.3"
                     sparkle:shortVersionString="0.1.3"
                     sparkle:edSignature="f++jXE9sGgj3e/FeAZOVoISAKGda/S93NzOkv87ig21I0g1GSIMvtU0sBF1AuTahrcn42/3bQp4aSEEkMOWqCQ=="
@@ -39,7 +39,7 @@
                     </ul>
                 ]]></description>
                 <enclosure
-                    url="https://github.com/pkmdev-sec/MarklyAI/releases/download/v0.1.2/Arcmark-0.1.2.dmg"
+                    url="https://github.com/pkmdev-sec/MarklyAI/releases/download/v0.1.2/MarklyAI-0.1.2.dmg"
                     sparkle:version="0.1.2"
                     sparkle:shortVersionString="0.1.2"
                     sparkle:edSignature="Da6zFkLv0U4avaVTZXY0l/cguXdXTSsf4U4p1jUsqXuoCKbJs1rfVdQZDXxcg3FVjAO9dWl/g56Y3QNGgIu6AQ=="

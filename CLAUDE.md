@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Arcmark is a macOS bookmark management application built with Swift and AppKit. It provides a workspace-based organization system for links and folders with features like drag-and-drop, inline editing, and automatic favicon/title fetching.
+MarklyAI is a macOS bookmark management application built with Swift and AppKit. It provides a workspace-based organization system for links and folders with features like drag-and-drop, inline editing, and automatic favicon/title fetching.
 
 ## Development Commands
 
@@ -74,7 +74,7 @@ The application follows a unidirectional data flow pattern:
    - Automatically persists to disk via `DataStore` after every mutation
 
 2. **DataStore** - Handles persistence layer
-   - Saves/loads JSON to `~/Library/Application Support/Arcmark/data.json`
+   - Saves/loads JSON to `~/Library/Application Support/MarklyAI/data.json`
    - Manages favicon storage in `Icons/` subdirectory
    - Provides default state initialization
 

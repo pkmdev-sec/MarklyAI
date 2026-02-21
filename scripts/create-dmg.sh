@@ -1,5 +1,5 @@
 #!/bin/bash
-# Create a DMG installer for Arcmark with drag-and-drop to Applications folder
+# Create a DMG installer for MarklyAI with drag-and-drop to Applications folder
 #
 # Usage:
 #   ./scripts/create-dmg.sh              # Create DMG without notarization
@@ -26,7 +26,7 @@ fi
 VERSION=$(cat VERSION | tr -d '[:space:]')
 
 # Verify the app bundle exists
-APP_BUNDLE=".build/bundler/Arcmark.app"
+APP_BUNDLE=".build/bundler/MarklyAI.app"
 if [ ! -d "$APP_BUNDLE" ]; then
     echo "❌ Error: App bundle not found at $APP_BUNDLE"
     echo "   Run ./scripts/build.sh first"
@@ -38,9 +38,9 @@ OUTPUT_DIR=".build/dmg"
 mkdir -p "$OUTPUT_DIR"
 
 # DMG configuration
-DMG_NAME="Arcmark-${VERSION}.dmg"
+DMG_NAME="MarklyAI-${VERSION}.dmg"
 DMG_PATH="$OUTPUT_DIR/$DMG_NAME"
-VOLUME_NAME="Arcmark ${VERSION}"
+VOLUME_NAME="MarklyAI ${VERSION}"
 TEMP_DMG="$OUTPUT_DIR/temp.dmg"
 
 # Clean up any existing DMG files
@@ -120,7 +120,7 @@ tell application "Finder"
         set text size of viewOptions to 14
 
         -- Position icons (adjusted for larger icons)
-        set position of item "Arcmark.app" of container window to {160, 200}
+        set position of item "MarklyAI.app" of container window to {160, 200}
         set position of item "Applications" of container window to {460, 200}
 
         -- Update view
@@ -236,7 +236,7 @@ if [ -n "$SIGN_UPDATE" ] && [ -x "$SIGN_UPDATE" ]; then
         if [ -f "$APPCAST_FILE" ]; then
             echo "  → Updating appcast.xml with new release entry..."
 
-            DMG_URL="https://github.com/pkmdev-sec/MarklyAI/releases/download/v${VERSION}/Arcmark-${VERSION}.dmg"
+            DMG_URL="https://github.com/pkmdev-sec/MarklyAI/releases/download/v${VERSION}/MarklyAI-${VERSION}.dmg"
             PUB_DATE=$(date -u "+%a, %d %b %Y %H:%M:%S %z")
 
             NEW_ITEM="            <item>\\
