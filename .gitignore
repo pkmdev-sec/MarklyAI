@@ -35,3 +35,7 @@ docs/images/demo.mp4
 # Enhanced icon variants (only AppIcon.png and v4 are used)
 Resources/AppIcon-enhanced-v4.png
 Resources/AppIcon-enhanced-v4-comparison.png
+
+# Build output
+/build/
+*.dmg
