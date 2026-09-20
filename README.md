@@ -153,7 +153,7 @@ Integrate MarklyAI into your automation workflows with **App Intents**. Save boo
 | Spotlight | CoreSpotlight |
 | Data Storage | Local JSON + favicon cache |
 | Build System | Swift Package Manager + Swift Bundler |
-| Distribution | Notarized DMG with Sparkle updates |
+| Distribution | DMG release tooling with Sparkle updates; signing and notarization require release credentials |
 
 <br>
 
@@ -162,6 +162,8 @@ Integrate MarklyAI into your automation workflows with **App Intents**. Save boo
 ### Download
 
 Grab the latest release from the [Releases page](https://github.com/pkmdev-sec/MarklyAI/releases/latest).
+
+The current v0.1.4 DMG is not Developer ID signed or notarized. Treat it as a test build, or build from source, until a signed release is published.
 
 1. Download the `.dmg` file
 2. Open it and drag **MarklyAI.app** to **Applications**

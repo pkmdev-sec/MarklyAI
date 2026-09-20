@@ -326,34 +326,6 @@ final class ArcImportTests: XCTestCase {
         }
     }
 
-    // MARK: - Integration Test with Real File
-
-    /// Test with the actual user file if it exists
-    func testRealUserFile() async throws {
-        let fileURL = URL(fileURLWithPath: "/path/to/user-home/Downloads/StorableSidebar.json")
-
-        guard FileManager.default.fileExists(atPath: fileURL.path) else {
-            print("⚠️  Skipping real file test - file not found at \(fileURL.path)")
-            return
-        }
-
-        let service = ArcImportService.shared
-        let result = await service.importFromArc(fileURL: fileURL)
-
-        switch result {
-        case .success(let importResult):
-            print("✅ Successfully imported user's file!")
-            print("   Workspaces: \(importResult.workspacesCreated)")
-            print("   Links: \(importResult.linksImported)")
-            print("   Folders: \(importResult.foldersImported)")
-
-            XCTAssertGreaterThan(importResult.workspacesCreated, 0, "Should import at least one workspace")
-            XCTAssertGreaterThan(importResult.linksImported, 0, "Should import at least one link")
-        case .failure(let error):
-            XCTFail("Failed to import user's file: \(error)")
-        }
-    }
-
     // MARK: - Regression Test for User's File
 
     func testUserFileWithNullSavedTitle() async throws {
